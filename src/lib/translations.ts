@@ -134,6 +134,13 @@ export const translations = {
         paidSuccessfully: 'Paid successfully!',
         failedLoadData: 'Failed to load data',
 
+        // PWA Install
+        installApp: 'Install App',
+        installAppDesc: 'Install Watch Manager on your device for quick access.',
+        installNow: 'Install Now',
+        iosTapShare: 'Tap',
+        iosThenAdd: 'then "Add to Home Screen"',
+
         // Language
         language: 'Language',
         english: 'English',
@@ -273,6 +280,13 @@ export const translations = {
         failedMarkPaid: 'ચૂકવેલ તરીકે ચિહ્નિત કરવામાં નિષ્ફળ',
         paidSuccessfully: 'ચુકવણી સફળતાપૂર્વક થઈ ગઈ!',
         failedLoadData: 'ડેટા લોડ કરવામાં નિષ્ફળ',
+
+        // PWA Install
+        installApp: 'એપ ઇન્સ્ટોલ કરો',
+        installAppDesc: 'ઝડપી ઍક્સેસ માટે તમારા ઉપકરણ પર Watch Manager ઇન્સ્ટોલ કરો.',
+        installNow: 'હમણાં ઇન્સ્ટોલ કરો',
+        iosTapShare: 'ટેપ કરો',
+        iosThenAdd: 'પછી "હોમ સ્ક્રીનમાં ઉમેરો"',
 
         // Language
         language: 'ભાષા',

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Toaster } from "sonner";
 import { LanguageProvider } from "@/lib/LanguageContext";
 import Navigation from "@/components/Navigation";
+import { InstallPrompt } from "@/components/InstallPrompt";
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import "./globals.css";
 
@@ -39,6 +40,7 @@ export default function RootLayout({
             theme="dark"
           />
           <SpeedInsights />
+          <InstallPrompt />
         </LanguageProvider>
       </body>
     </html>

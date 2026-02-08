@@ -7,8 +7,9 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Clock, UserCircle, Package, CheckSquare, RefreshCw, Save, X, Calendar, Check, CheckCircle2, ListFilter } from 'lucide-react'
+import { Clock, UserCircle, Package, CheckSquare, RefreshCw, Save, X, Calendar, Check, CheckCircle2, ListFilter, Pencil } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
+import { useRouter } from 'next/navigation'
 import api, { handleApiError } from '@/lib/api'
 import { ApiEndpoints, WorkStatus } from '@/lib/enums'
 
@@ -42,6 +43,7 @@ interface PendingItem {
 
 export default function PendingPage() {
     const { t } = useLanguage()
+    const router = useRouter()
     const [workers, setWorkers] = useState<Worker[]>([])
     const [allTasks, setAllTasks] = useState<Task[]>([])
     const [pendingItems, setPendingItems] = useState<PendingItem[]>([])
@@ -53,6 +55,14 @@ export default function PendingPage() {
     const [reassignWorkerId, setReassignWorkerId] = useState('')
     const [reassignQuantity, setReassignQuantity] = useState('')
     const [reassignTasks, setReassignTasks] = useState<string[]>([])
+
+    // Edit modal state
+    const [editItem, setEditItem] = useState<PendingItem | null>(null)
+    const [editWorkerId, setEditWorkerId] = useState('')
+    const [editQuantity, setEditQuantity] = useState('')
+    const [editTasks, setEditTasks] = useState<string[]>([])
+    const [editStatus, setEditStatus] = useState<WorkStatus.IN_PROGRESS | WorkStatus.COMPLETED>(WorkStatus.IN_PROGRESS)
+    const [editDate, setEditDate] = useState('')
 
     useEffect(() => {
         fetchData()
@@ -105,6 +115,19 @@ export default function PendingPage() {
         setReassignTasks(item.remainingTasks.map(t => t.id))
     }
 
+    function getTaskName(taskId: string): string {
+        const task = allTasks.find(t => t.id === taskId)
+        return task ? task.name : 'Unknown'
+    }
+
+    function calculateEntryPrice(item: PendingItem): number {
+        let total = 0
+        item.completedTasks.forEach(task => {
+            total += task.rate * item.entry.quantity
+        })
+        return total
+    }
+
     function toggleReassignTask(taskId: string) {
         if (reassignTasks.includes(taskId)) {
             setReassignTasks(reassignTasks.filter(t => t !== taskId))
@@ -144,6 +167,47 @@ export default function PendingPage() {
             fetchData()
         } catch (error) {
             toast.error(handleApiError(error, t('failedUpdateStatus')))
+        }
+    }
+
+    // Open Edit modal
+    function openEditModal(item: PendingItem) {
+        setEditItem(item)
+        setEditWorkerId(item.entry.worker_id)
+        setEditQuantity(item.entry.quantity.toString())
+        setEditTasks(item.entry.work_entry_tasks?.map(t => t.task_id) || [])
+        setEditStatus((item.entry.status as WorkStatus.IN_PROGRESS | WorkStatus.COMPLETED) || WorkStatus.IN_PROGRESS)
+        setEditDate(item.entry.entry_date)
+    }
+
+    function toggleEditTask(taskId: string) {
+        if (editTasks.includes(taskId)) {
+            setEditTasks(editTasks.filter(t => t !== taskId))
+        } else {
+            setEditTasks([...editTasks, taskId])
+        }
+    }
+
+    async function handleEditSave() {
+        if (!editItem || !editWorkerId || !editQuantity || editTasks.length === 0) {
+            toast.error(t('fillAllFields'))
+            return
+        }
+
+        try {
+            await api.put(`${ApiEndpoints.ENTRIES}/${editItem.entry.id}`, {
+                worker_id: editWorkerId,
+                quantity: parseInt(editQuantity),
+                entry_date: editDate,
+                status: editStatus,
+                task_ids: editTasks
+            })
+
+            toast.success(t('entrySaved'))
+            setEditItem(null)
+            fetchData()
+        } catch (error) {
+            toast.error(handleApiError(error, t('failedSaveEntry')))
         }
     }
 
@@ -198,13 +262,32 @@ export default function PendingPage() {
             </div>
 
             {loading ? (
-                <div>
-                    {[1, 2, 3].map(i => (
-                        <Card key={i} className="mb-2 bg-slate-900/50 border-slate-800">
-                            <CardContent className="p-4">
-                                <Skeleton className="h-4 w-24 mb-2 bg-slate-800" />
-                                <Skeleton className="h-5 w-40 mb-2 bg-slate-800" />
-                                <Skeleton className="h-10 w-full bg-slate-800" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {[1, 2, 3, 4].map(i => (
+                        <Card key={i} className="bg-slate-900/50 border-slate-800 relative overflow-hidden">
+                            <div className="absolute top-0 left-0 w-1 h-full bg-slate-700 animate-pulse" />
+                            <CardContent className="p-4 pl-5">
+                                {/* Header Row */}
+                                <div className="flex items-start justify-between gap-3 mb-3">
+                                    <div className="flex items-center gap-3">
+                                        <Skeleton className="h-11 w-11 rounded-full bg-slate-800" />
+                                        <div>
+                                            <Skeleton className="h-4 w-28 mb-1.5 bg-slate-800" />
+                                            <Skeleton className="h-3 w-20 bg-slate-800" />
+                                        </div>
+                                    </div>
+                                    <Skeleton className="h-12 w-16 rounded-lg bg-slate-800" />
+                                </div>
+                                {/* Badges */}
+                                <div className="flex gap-2 mb-3">
+                                    <Skeleton className="h-6 w-20 rounded-full bg-slate-800" />
+                                    <Skeleton className="h-6 w-24 rounded-full bg-slate-800" />
+                                </div>
+                                {/* Action Buttons */}
+                                <div className="flex gap-2 pt-2 border-t border-slate-800/50">
+                                    <Skeleton className="h-9 flex-1 rounded-md bg-slate-800" />
+                                    <Skeleton className="h-9 w-9 rounded-md bg-slate-800" />
+                                </div>
                             </CardContent>
                         </Card>
                     ))}
@@ -220,110 +303,117 @@ export default function PendingPage() {
                     <div className="text-slate-500 text-sm">{t('noData')}</div>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {filteredItems.map(item => (
                         <Card
                             key={item.entry.id}
-                            className="bg-slate-900/50 border-slate-800 hover:border-emerald-500/50 transition-all duration-300 group relative overflow-hidden card-hover"
+                            className="bg-slate-900/50 border-slate-800 hover:border-emerald-500/30 transition-all duration-300 group relative overflow-hidden"
                         >
-                            <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+                            {/* Status indicator bar */}
+                            <div className={`absolute top-0 left-0 w-1 h-full ${item.entry.status === 'completed' ? 'bg-emerald-500' : 'bg-amber-500'
+                                }`} />
 
-                            <CardContent className="p-3 pl-4 flex flex-col relative z-10">
-                                {/* Header Row: Avatar, Info, Quantity */}
-                                <div className="flex items-center gap-3 w-full">
-                                    {/* Avatar */}
-                                    <div className="relative shrink-0">
-                                        <div className="h-10 w-10 rounded-full bg-slate-800 flex items-center justify-center text-emerald-400 border border-slate-700 group-hover:border-emerald-500/30 transition-colors">
-                                            <UserCircle size={20} />
+                            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+
+                            <CardContent className="p-4 pl-5 flex flex-col relative z-10">
+                                {/* Top Row: Worker Info + Quantity/Price */}
+                                <div className="flex items-start justify-between gap-3 mb-3">
+                                    {/* Left: Avatar & Worker */}
+                                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                                        <div className="relative shrink-0">
+                                            <div className={`h-11 w-11 rounded-full flex items-center justify-center border-2 transition-colors ${item.entry.status === 'completed'
+                                                ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400'
+                                                : 'bg-amber-500/10 border-amber-500/50 text-amber-400'
+                                                }`}>
+                                                <UserCircle size={22} />
+                                            </div>
                                         </div>
-                                        <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 bg-emerald-500 rounded-full border-2 border-slate-900" />
+                                        <div className="min-w-0">
+                                            <div className="font-semibold text-white text-sm leading-tight truncate">
+                                                {item.entry.workers?.name}
+                                            </div>
+                                            <div className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
+                                                <Calendar size={11} />
+                                                {new Date(item.entry.entry_date).toLocaleDateString()}
+                                            </div>
+                                        </div>
                                     </div>
 
-                                    {/* Worker Info */}
-                                    <div className="flex-1 min-w-0">
-                                        <div className="font-bold text-white text-sm leading-tight truncate">
-                                            {item.entry.workers?.name}
-                                        </div>
-                                        <div className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
-                                            <Calendar size={12} /> {new Date(item.entry.entry_date).toLocaleDateString()}
-                                        </div>
-                                    </div>
-
-                                    {/* Quantity */}
-                                    <div className="text-right shrink-0">
-                                        <div className="text-lg font-bold text-emerald-400 leading-none">
+                                    {/* Right: Quantity & Price */}
+                                    <div className="text-right shrink-0 bg-slate-800/50 rounded-lg px-3 py-1.5 border border-slate-700/50">
+                                        <div className="text-[10px] text-slate-500 uppercase font-bold mb-0.5">{t('quantity')}</div>
+                                        <div className="text-lg font-bold text-white leading-none flex items-center justify-end gap-1">
+                                            <Package size={14} className="text-emerald-500" />
                                             {item.entry.quantity}
                                         </div>
-                                        <div className="text-[10px] text-slate-500 uppercase font-bold mt-0.5">{t('quantity')}</div>
+                                        <div className="text-xs font-medium text-emerald-400 mt-1">₹{calculateEntryPrice(item).toLocaleString()}</div>
                                     </div>
                                 </div>
 
-                                {/* Status & Tasks Block */}
-                                <div className="bg-slate-950/30 rounded-md p-2 mt-2 border border-slate-800/30">
-                                    <div className="flex flex-wrap gap-1.5 mb-1.5">
-                                        {/* Status Badge */}
-                                        {item.entry.status === 'completed' ? (
-                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-medium">
-                                                <CheckCircle2 size={12} /> {t('completed')}
-                                            </span>
-                                        ) : (
-                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs font-medium">
-                                                <Clock size={12} /> {t('inProgress')}
-                                            </span>
-                                        )}
-
-                                        {/* Task progress summary */}
-                                        {item.remainingTasks.length > 0 ? (
-                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-800 text-slate-400 border border-slate-700 text-xs">
-                                                <Clock size={12} /> {item.remainingTasks.length} {t('remaining')}
-                                            </span>
-                                        ) : (
-                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-800 text-slate-400 border border-slate-700 text-xs">
-                                                <Check size={12} /> {t('allTasksDone')}
-                                            </span>
-                                        )}
-                                    </div>
-
-                                    {item.remainingTasks.length > 0 && (
-                                        <div className="flex flex-wrap gap-1">
-                                            {item.remainingTasks.map(task => (
-                                                <span key={task.id} className="text-[10px] bg-amber-500/10 text-amber-500/80 border border-amber-500/10 px-1.5 py-0.5 rounded">
-                                                    {task.name}
-                                                </span>
-                                            ))}
-                                        </div>
+                                {/* Status Row */}
+                                <div className="flex flex-wrap gap-1.5 mb-3">
+                                    {item.entry.status === 'completed' ? (
+                                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-500/15 text-emerald-400 text-xs font-medium">
+                                            <CheckCircle2 size={12} /> {t('completed')}
+                                        </span>
+                                    ) : (
+                                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-500/15 text-amber-400 text-xs font-medium">
+                                            <Clock size={12} /> {t('inProgress')}
+                                        </span>
                                     )}
+                                </div>
+
+                                {/* Assigned Tasks */}
+                                <div className="flex flex-wrap gap-1 mb-3">
+                                    {item.entry.work_entry_tasks?.map(wt => (
+                                        <span
+                                            key={wt.task_id}
+                                            className={`text-[11px] px-2 py-0.5 rounded-full border flex items-center gap-1 ${item.entry.status === 'completed'
+                                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                                : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                                                }`}
+                                        >
+                                            {item.entry.status === 'completed' ? <Check size={10} /> : <Clock size={10} />}
+                                            {getTaskName(wt.task_id)}
+                                        </span>
+                                    ))}
                                 </div>
 
                                 {/* Action Buttons */}
-                                <div className="flex gap-2 w-full mt-2">
-                                    {/* Status Toggle Button */}
+                                <div className="flex gap-2 w-full mt-auto pt-2 border-t border-slate-800/50">
                                     {item.entry.status === WorkStatus.IN_PROGRESS ? (
                                         <Button
-                                            className="flex-1 bg-emerald-600 hover:bg-emerald-700 h-8 text-xs"
+                                            className="flex-1 bg-emerald-600 hover:bg-emerald-500 h-9 text-xs font-medium shadow-lg shadow-emerald-900/20"
                                             onClick={() => handleStatusChange(item.entry.id, WorkStatus.COMPLETED)}
                                         >
-                                            <CheckCircle2 size={14} className="mr-1" /> <span className="truncate">{t('markComplete')}</span>
+                                            <CheckCircle2 size={15} className="mr-1.5" /> {t('markComplete')}
                                         </Button>
                                     ) : (
                                         <Button
-                                            className="flex-1 bg-amber-600 hover:bg-amber-700 h-8 text-xs"
+                                            className="flex-1 bg-amber-600 hover:bg-amber-500 h-9 text-xs font-medium"
                                             onClick={() => handleStatusChange(item.entry.id, WorkStatus.IN_PROGRESS)}
                                         >
-                                            <Clock size={14} className="mr-1" /> <span className="truncate">{t('markInProgress')}</span>
+                                            <Clock size={15} className="mr-1.5" /> {t('markInProgress')}
                                         </Button>
                                     )}
 
-                                    {/* Reassign Button */}
                                     {item.remainingTasks.length > 0 && (
                                         <Button
-                                            className="flex-shrink-0 w-8 px-0 bg-blue-600 hover:bg-blue-700 h-8"
+                                            className="w-9 px-0 bg-blue-600 hover:bg-blue-500 h-9"
                                             onClick={() => openReassign(item)}
                                             title={t('reassign')}
                                         >
-                                            <RefreshCw size={14} />
+                                            <RefreshCw size={15} />
                                         </Button>
                                     )}
+
+                                    <button
+                                        className="w-9 h-9 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors border border-slate-700"
+                                        onClick={() => openEditModal(item)}
+                                        title={t('edit')}
+                                    >
+                                        <Pencil size={14} />
+                                    </button>
                                 </div>
                             </CardContent>
                         </Card>
@@ -405,6 +495,126 @@ export default function PendingPage() {
                             variant="secondary"
                             className="big-action-btn bg-slate-700 hover:bg-slate-600"
                             onClick={() => setShowReassign(null)}
+                        >
+                            <X size={18} /> {t('cancel')}
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* Edit Modal */}
+            <Modal
+                isOpen={!!editItem}
+                onClose={() => setEditItem(null)}
+                title={
+                    <>
+                        <Pencil size={20} className="text-emerald-400" /> {t('edit')}
+                    </>
+                }
+            >
+                <div className="space-y-4">
+                    <div className="form-group">
+                        <label className="form-label">
+                            <UserCircle size={18} /> {t('worker')}
+                        </label>
+                        <select
+                            className="large-select bg-slate-800 border-slate-700"
+                            value={editWorkerId}
+                            onChange={(e) => setEditWorkerId(e.target.value)}
+                        >
+                            <option value="">{t('selectWorker')}...</option>
+                            {workers.map(w => (
+                                <option key={w.id} value={w.id}>{w.name}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="form-group">
+                        <label className="form-label">
+                            <Package size={18} /> {t('quantity')}
+                        </label>
+                        <Input
+                            type="number"
+                            className="large-input bg-slate-800 border-slate-700"
+                            value={editQuantity}
+                            onChange={(e) => setEditQuantity(e.target.value)}
+                            min="1"
+                        />
+                    </div>
+
+                    <div className="form-group">
+                        <label className="form-label">
+                            <Calendar size={18} /> {t('date')}
+                        </label>
+                        <Input
+                            type="date"
+                            className="large-input bg-slate-800 border-slate-700"
+                            value={editDate}
+                            onChange={(e) => setEditDate(e.target.value)}
+                        />
+                    </div>
+
+                    <div className="form-group">
+                        <label className="form-label">
+                            <Clock size={18} /> {t('status')}
+                        </label>
+                        <div className="flex gap-2">
+                            <button
+                                type="button"
+                                className={`flex-1 py-2 px-3 rounded-lg border transition-colors flex items-center justify-center gap-2 ${editStatus === WorkStatus.IN_PROGRESS
+                                    ? 'bg-amber-500/20 border-amber-500 text-amber-400'
+                                    : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600'
+                                    }`}
+                                onClick={() => setEditStatus(WorkStatus.IN_PROGRESS)}
+                            >
+                                <Clock size={16} /> {t('inProgress')}
+                            </button>
+                            <button
+                                type="button"
+                                className={`flex-1 py-2 px-3 rounded-lg border transition-colors flex items-center justify-center gap-2 ${editStatus === WorkStatus.COMPLETED
+                                    ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400'
+                                    : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600'
+                                    }`}
+                                onClick={() => setEditStatus(WorkStatus.COMPLETED)}
+                            >
+                                <CheckCircle2 size={16} /> {t('completed')}
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="form-group">
+                        <label className="form-label">
+                            <CheckSquare size={18} /> {t('tasksCompleted')}
+                        </label>
+                        <div className="checkbox-grid">
+                            {allTasks.map(task => (
+                                <div
+                                    key={task.id}
+                                    className={`checkbox-item ${editTasks.includes(task.id) ? 'selected' : ''}`}
+                                    onClick={() => toggleEditTask(task.id)}
+                                >
+                                    <input
+                                        type="checkbox"
+                                        checked={editTasks.includes(task.id)}
+                                        onChange={() => { }}
+                                    />
+                                    <span>{task.name}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="action-grid">
+                        <Button
+                            className="big-action-btn bg-emerald-600 hover:bg-emerald-700"
+                            onClick={handleEditSave}
+                        >
+                            <Save size={18} /> {t('save')}
+                        </Button>
+                        <Button
+                            variant="secondary"
+                            className="big-action-btn bg-slate-700 hover:bg-slate-600"
+                            onClick={() => setEditItem(null)}
                         >
                             <X size={18} /> {t('cancel')}
                         </Button>

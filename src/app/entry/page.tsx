@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Modal } from '@/components/ui/Modal'
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
-import { FileEdit, UserCircle, Package, Calendar, CheckSquare, Save, X, Pencil, Trash2, Clock, CheckCircle2, Plus } from 'lucide-react'
+import { FileEdit, UserCircle, Package, Calendar, CheckSquare, Save, X, Pencil, Trash2, Clock, CheckCircle2, Plus, Check } from 'lucide-react'
 import api, { handleApiError } from '@/lib/api'
 import { ApiEndpoints, WorkStatus } from '@/lib/enums'
 
@@ -166,6 +166,17 @@ function EntryContent() {
         return task ? task.name : 'Unknown'
     }
 
+    function calculateEntryPrice(entry: WorkEntry): number {
+        let total = 0
+        entry.work_entry_tasks?.forEach(wt => {
+            const task = tasks.find(t => t.id === wt.task_id)
+            if (task) {
+                total += task.rate * entry.quantity
+            }
+        })
+        return total
+    }
+
     return (
         <div>
             {/* Page Header */}
@@ -307,11 +318,31 @@ function EntryContent() {
             {loading ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {[1, 2, 3, 4].map(i => (
-                        <Card key={i} className="bg-slate-900/50 border-slate-800">
-                            <CardContent className="p-4">
-                                <Skeleton className="h-6 w-32 mb-2 bg-slate-800" />
-                                <Skeleton className="h-5 w-40 mb-2 bg-slate-800" />
-                                <Skeleton className="h-4 w-24 bg-slate-800" />
+                        <Card key={i} className="bg-slate-900/50 border-slate-800 relative overflow-hidden">
+                            <div className="absolute top-0 left-0 w-1 h-full bg-slate-700 animate-pulse" />
+                            <CardContent className="p-4 pl-5">
+                                {/* Header Row */}
+                                <div className="flex items-center gap-3 mb-3">
+                                    <Skeleton className="h-10 w-10 rounded-full bg-slate-800" />
+                                    <div className="flex-1">
+                                        <Skeleton className="h-4 w-28 mb-1.5 bg-slate-800" />
+                                        <Skeleton className="h-3 w-20 bg-slate-800" />
+                                    </div>
+                                    <Skeleton className="h-12 w-16 rounded-lg bg-slate-800" />
+                                </div>
+                                {/* Task badges */}
+                                <div className="flex flex-wrap gap-1.5 mb-3">
+                                    <Skeleton className="h-5 w-20 rounded-full bg-slate-800" />
+                                    <Skeleton className="h-5 w-16 rounded-full bg-slate-800" />
+                                </div>
+                                {/* Action row */}
+                                <div className="flex items-center justify-between pt-2 border-t border-slate-800/50">
+                                    <Skeleton className="h-5 w-20 rounded-full bg-slate-800" />
+                                    <div className="flex gap-2">
+                                        <Skeleton className="h-7 w-7 rounded-md bg-slate-800" />
+                                        <Skeleton className="h-7 w-7 rounded-md bg-slate-800" />
+                                    </div>
+                                </div>
                             </CardContent>
                         </Card>
                     ))}
@@ -324,7 +355,7 @@ function EntryContent() {
                     <div className="empty-state-text">{t('noData')}</div>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {entries.map(entry => (
                         <Card key={entry.id} className="bg-slate-900/50 border-slate-800 hover:border-slate-700 transition-colors group relative overflow-hidden card-hover">
                             <div className={`absolute top-0 left-0 w-1 h-full transition-colors ${entry.status === 'completed' ? 'bg-emerald-500' :
@@ -352,25 +383,31 @@ function EntryContent() {
                                         </div>
                                     </div>
 
-                                    {/* Quantity */}
+                                    {/* Quantity & Price */}
                                     <div className="text-right shrink-0">
-                                        <div className="text-lg font-bold text-white flex items-center justify-end gap-1">
+                                        <div className="text-[10px] text-slate-500 uppercase font-bold mb-0.5">{t('quantity')}</div>
+                                        <div className="text-lg font-bold text-white flex items-center justify-end gap-1 leading-none">
                                             <Package size={14} className="text-emerald-500" />
                                             {entry.quantity}
                                         </div>
-                                        <div className="text-[10px] text-slate-500 uppercase font-bold">{t('quantity')}</div>
+                                        <div className="text-xs font-bold text-emerald-400 mt-1">₹{calculateEntryPrice(entry).toLocaleString()}</div>
                                     </div>
                                 </div>
 
                                 {/* Tasks List */}
-                                <div className="mt-2 bg-slate-950/30 rounded-md p-2 border border-slate-800/30">
-                                    <div className="flex flex-wrap gap-1">
-                                        {entry.work_entry_tasks?.map(t => (
-                                            <span key={t.task_id} className="text-[10px] bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded border border-slate-700">
-                                                {getTaskName(t.task_id)}
-                                            </span>
-                                        ))}
-                                    </div>
+                                <div className="flex flex-wrap gap-1 mt-3 mb-1">
+                                    {entry.work_entry_tasks?.map(wt => (
+                                        <span
+                                            key={wt.task_id}
+                                            className={`text-[11px] px-2 py-0.5 rounded-full border flex items-center gap-1 ${entry.status === 'completed'
+                                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                                : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                                                }`}
+                                        >
+                                            {entry.status === 'completed' ? <Check size={10} /> : <Clock size={10} />}
+                                            {getTaskName(wt.task_id)}
+                                        </span>
+                                    ))}
                                 </div>
 
                                 {/* Status & Actions Row */}

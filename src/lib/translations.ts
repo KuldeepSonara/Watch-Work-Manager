@@ -32,6 +32,7 @@ export const translations = {
         saveChanges: 'Save Changes',
 
         // Workers page
+        worker: 'Worker',
         workerName: 'Worker Name',
         addWorker: 'Add Worker',
         editWorker: 'Edit Worker',
@@ -171,6 +172,7 @@ export const translations = {
         saveChanges: 'ફેરફારો સેવ કરો',
 
         // Workers page
+        worker: 'કામદાર',
         workerName: 'કામદારનું નામ',
         addWorker: 'કામદાર ઉમેરો',
         editWorker: 'કામદાર એડિટ કરો',

@@ -29,7 +29,7 @@ export default function RootLayout({
         <LanguageProvider>
           <Navigation />
           {/* Main content: padding for top nav on desktop, bottom nav on mobile */}
-          <main className="container pt-4 pb-24 md:pt-20 md:pb-8">
+          <main className="container pt-8 pb-28 md:pt-24 md:pb-12 px-4 md:px-6">
             {children}
           </main>
           <Toaster

@@ -4,16 +4,17 @@ import { useState, useEffect } from 'react'
 import { useLanguage } from '@/lib/LanguageContext'
 import { supabase } from '@/lib/supabase'
 
-interface TaskRate {
+interface Task {
     id: string
-    task_number: number
-    task_name: string
+    name: string
     rate: number
+    is_active: boolean
+    sort_order: number
 }
 
 export default function RatesPage() {
     const { t } = useLanguage()
-    const [tasks, setTasks] = useState<TaskRate[]>([])
+    const [tasks, setTasks] = useState<Task[]>([])
     const [loading, setLoading] = useState(true)
     const [message, setMessage] = useState('')
 
@@ -31,9 +32,10 @@ export default function RatesPage() {
     async function fetchTasks() {
         setLoading(true)
         const { data, error } = await supabase
-            .from('task_rates')
+            .from('tasks')
             .select('*')
-            .order('task_number')
+            .eq('is_active', true)
+            .order('sort_order')
 
         if (error) {
             console.error('Error fetching tasks:', error)
@@ -47,15 +49,16 @@ export default function RatesPage() {
         e.preventDefault()
         if (!newTaskName.trim()) return
 
-        // Get next task number
-        const maxNum = tasks.length > 0 ? Math.max(...tasks.map(t => t.task_number)) : 0
+        // Get next sort order
+        const maxOrder = tasks.length > 0 ? Math.max(...tasks.map(t => t.sort_order)) : 0
 
         const { error } = await supabase
-            .from('task_rates')
+            .from('tasks')
             .insert({
-                task_number: maxNum + 1,
-                task_name: newTaskName.trim(),
-                rate: parseFloat(newTaskRate) || 0
+                name: newTaskName.trim(),
+                rate: parseFloat(newTaskRate) || 0,
+                is_active: true,
+                sort_order: maxOrder + 1
             })
 
         if (error) {
@@ -71,9 +74,9 @@ export default function RatesPage() {
 
     async function handleUpdateTask(id: string) {
         const { error } = await supabase
-            .from('task_rates')
+            .from('tasks')
             .update({
-                task_name: editName,
+                name: editName,
                 rate: parseFloat(editRate) || 0
             })
             .eq('id', id)
@@ -91,9 +94,10 @@ export default function RatesPage() {
     async function handleDeleteTask(id: string) {
         if (!confirm('Delete this task?')) return
 
+        // Soft delete - set is_active to false
         const { error } = await supabase
-            .from('task_rates')
-            .delete()
+            .from('tasks')
+            .update({ is_active: false })
             .eq('id', id)
 
         if (error) {
@@ -105,9 +109,9 @@ export default function RatesPage() {
         setTimeout(() => setMessage(''), 3000)
     }
 
-    function startEdit(task: TaskRate) {
+    function startEdit(task: Task) {
         setEditId(task.id)
-        setEditName(task.task_name)
+        setEditName(task.name)
         setEditRate(task.rate.toString())
     }
 
@@ -167,7 +171,7 @@ export default function RatesPage() {
                 </div>
             ) : (
                 <div>
-                    {tasks.map(task => (
+                    {tasks.map((task, index) => (
                         <div key={task.id} className="card">
                             {editId === task.id ? (
                                 /* Edit Mode */
@@ -212,10 +216,10 @@ export default function RatesPage() {
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
                                     <div>
                                         <div style={{ fontSize: '0.8125rem', color: '#64748b' }}>
-                                            #{task.task_number}
+                                            #{index + 1}
                                         </div>
                                         <div style={{ fontWeight: 600, fontSize: '1rem' }}>
-                                            {task.task_name}
+                                            {task.name}
                                         </div>
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

@@ -10,20 +10,20 @@ interface Worker {
     name: string
 }
 
-interface TaskRate {
+interface Task {
     id: string
-    task_number: number
-    task_name: string
+    name: string
     rate: number
+    sort_order: number
 }
 
 interface WorkEntry {
     id: string
     worker_id: string
     quantity: number
-    tasks_completed: string
     entry_date: string
     workers?: { name: string }
+    work_entry_tasks?: { task_id: string }[]
 }
 
 function EntryContent() {
@@ -33,7 +33,7 @@ function EntryContent() {
     const editId = searchParams.get('edit')
 
     const [workers, setWorkers] = useState<Worker[]>([])
-    const [tasks, setTasks] = useState<TaskRate[]>([])
+    const [tasks, setTasks] = useState<Task[]>([])
     const [entries, setEntries] = useState<WorkEntry[]>([])
     const [loading, setLoading] = useState(true)
     const [message, setMessage] = useState('')
@@ -41,7 +41,7 @@ function EntryContent() {
     // Form state
     const [workerId, setWorkerId] = useState('')
     const [quantity, setQuantity] = useState('')
-    const [selectedTasks, setSelectedTasks] = useState<number[]>([])
+    const [selectedTasks, setSelectedTasks] = useState<string[]>([])
     const [entryDate, setEntryDate] = useState(new Date().toISOString().split('T')[0])
 
     useEffect(() => {
@@ -54,7 +54,7 @@ function EntryContent() {
             if (entry) {
                 setWorkerId(entry.worker_id)
                 setQuantity(entry.quantity.toString())
-                setSelectedTasks(entry.tasks_completed.split(',').map(Number).filter((n: number) => !isNaN(n)))
+                setSelectedTasks(entry.work_entry_tasks?.map(t => t.task_id) || [])
                 setEntryDate(entry.entry_date)
             }
         }
@@ -65,8 +65,11 @@ function EntryContent() {
 
         const [workersRes, tasksRes, entriesRes] = await Promise.all([
             supabase.from('workers').select('*').order('name'),
-            supabase.from('task_rates').select('*').order('task_number'),
-            supabase.from('work_entries').select('*, workers(name)').order('entry_date', { ascending: false }).limit(50)
+            supabase.from('tasks').select('*').eq('is_active', true).order('sort_order'),
+            supabase.from('work_entries')
+                .select('*, workers(name), work_entry_tasks(task_id)')
+                .order('entry_date', { ascending: false })
+                .limit(50)
         ])
 
         if (workersRes.data) setWorkers(workersRes.data)
@@ -76,11 +79,11 @@ function EntryContent() {
         setLoading(false)
     }
 
-    function toggleTask(taskNum: number) {
-        if (selectedTasks.includes(taskNum)) {
-            setSelectedTasks(selectedTasks.filter(t => t !== taskNum))
+    function toggleTask(taskId: string) {
+        if (selectedTasks.includes(taskId)) {
+            setSelectedTasks(selectedTasks.filter(t => t !== taskId))
         } else {
-            setSelectedTasks([...selectedTasks, taskNum].sort((a, b) => a - b))
+            setSelectedTasks([...selectedTasks, taskId])
         }
     }
 
@@ -93,37 +96,63 @@ function EntryContent() {
             return
         }
 
-        const data = {
-            worker_id: workerId,
-            quantity: parseInt(quantity),
-            tasks_completed: selectedTasks.join(','),
-            entry_date: entryDate
-        }
-
         if (editId) {
-            const { error } = await supabase
+            // Update existing entry
+            const { error: updateError } = await supabase
                 .from('work_entries')
-                .update(data)
+                .update({
+                    worker_id: workerId,
+                    quantity: parseInt(quantity),
+                    entry_date: entryDate
+                })
                 .eq('id', editId)
 
-            if (error) {
+            if (updateError) {
                 setMessage('Error updating entry')
-            } else {
-                setMessage('Entry updated!')
-                router.push('/entry')
-                resetForm()
+                setTimeout(() => setMessage(''), 3000)
+                return
             }
-        } else {
-            const { error } = await supabase
-                .from('work_entries')
-                .insert(data)
 
-            if (error) {
+            // Delete old task links
+            await supabase.from('work_entry_tasks').delete().eq('work_entry_id', editId)
+
+            // Insert new task links
+            const taskLinks = selectedTasks.map(taskId => ({
+                work_entry_id: editId,
+                task_id: taskId
+            }))
+            await supabase.from('work_entry_tasks').insert(taskLinks)
+
+            setMessage('Entry updated!')
+            router.push('/entry')
+            resetForm()
+        } else {
+            // Create new entry
+            const { data: newEntry, error: insertError } = await supabase
+                .from('work_entries')
+                .insert({
+                    worker_id: workerId,
+                    quantity: parseInt(quantity),
+                    entry_date: entryDate
+                })
+                .select()
+                .single()
+
+            if (insertError || !newEntry) {
                 setMessage('Error adding entry')
-            } else {
-                setMessage('Entry saved!')
-                resetForm()
+                setTimeout(() => setMessage(''), 3000)
+                return
             }
+
+            // Insert task links
+            const taskLinks = selectedTasks.map(taskId => ({
+                work_entry_id: newEntry.id,
+                task_id: taskId
+            }))
+            await supabase.from('work_entry_tasks').insert(taskLinks)
+
+            setMessage('Entry saved!')
+            resetForm()
         }
 
         fetchData()
@@ -152,9 +181,13 @@ function EntryContent() {
         setTimeout(() => setMessage(''), 3000)
     }
 
-    function getTaskName(taskNum: number): string {
-        const task = tasks.find(t => t.task_number === taskNum)
-        return task ? task.task_name : `Task ${taskNum}`
+    function getTaskName(taskId: string): string {
+        const task = tasks.find(t => t.id === taskId)
+        return task ? task.name : 'Unknown'
+    }
+
+    function getEntryTaskNames(entry: WorkEntry): string[] {
+        return entry.work_entry_tasks?.map(t => getTaskName(t.task_id)) || []
     }
 
     return (
@@ -219,14 +252,14 @@ function EntryContent() {
                     <div className="form-group">
                         <label className="form-label">{t('tasksCompleted')}</label>
                         <div className="checkbox-group">
-                            {tasks.map(task => (
+                            {tasks.map((task, index) => (
                                 <label key={task.id} className="checkbox-item">
                                     <input
                                         type="checkbox"
-                                        checked={selectedTasks.includes(task.task_number)}
-                                        onChange={() => toggleTask(task.task_number)}
+                                        checked={selectedTasks.includes(task.id)}
+                                        onChange={() => toggleTask(task.id)}
                                     />
-                                    <span>{task.task_number}. {task.task_name}</span>
+                                    <span>{index + 1}. {task.name}</span>
                                 </label>
                             ))}
                         </div>
@@ -276,9 +309,9 @@ function EntryContent() {
                                         {entry.quantity} items
                                     </div>
                                     <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
-                                        {entry.tasks_completed.split(',').map(taskNum => (
-                                            <span key={taskNum} className="badge" title={getTaskName(parseInt(taskNum))}>
-                                                {taskNum}
+                                        {getEntryTaskNames(entry).map((name, idx) => (
+                                            <span key={idx} className="badge" title={name}>
+                                                {name.substring(0, 8)}...
                                             </span>
                                         ))}
                                     </div>

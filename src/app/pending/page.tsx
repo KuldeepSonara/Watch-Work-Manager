@@ -9,31 +9,32 @@ interface Worker {
     name: string
 }
 
-interface TaskRate {
+interface Task {
     id: string
-    task_number: number
-    task_name: string
+    name: string
     rate: number
+    sort_order: number
 }
 
 interface WorkEntry {
     id: string
     worker_id: string
     quantity: number
-    tasks_completed: string
     entry_date: string
     workers?: { name: string }
+    work_entry_tasks?: { task_id: string }[]
 }
 
 interface PendingItem {
     entry: WorkEntry
-    remainingTasks: number[]
+    completedTasks: Task[]
+    remainingTasks: Task[]
 }
 
 export default function PendingPage() {
     const { t } = useLanguage()
     const [workers, setWorkers] = useState<Worker[]>([])
-    const [tasks, setTasks] = useState<TaskRate[]>([])
+    const [allTasks, setAllTasks] = useState<Task[]>([])
     const [pendingItems, setPendingItems] = useState<PendingItem[]>([])
     const [loading, setLoading] = useState(true)
     const [message, setMessage] = useState('')
@@ -42,7 +43,7 @@ export default function PendingPage() {
     const [showReassign, setShowReassign] = useState<PendingItem | null>(null)
     const [reassignWorkerId, setReassignWorkerId] = useState('')
     const [reassignQuantity, setReassignQuantity] = useState('')
-    const [reassignTasks, setReassignTasks] = useState<number[]>([])
+    const [reassignTasks, setReassignTasks] = useState<string[]>([])
 
     useEffect(() => {
         fetchData()
@@ -53,25 +54,31 @@ export default function PendingPage() {
 
         const [workersRes, tasksRes, entriesRes] = await Promise.all([
             supabase.from('workers').select('*').order('name'),
-            supabase.from('task_rates').select('*').order('task_number'),
-            supabase.from('work_entries').select('*, workers(name)').order('entry_date', { ascending: false })
+            supabase.from('tasks').select('*').eq('is_active', true).order('sort_order'),
+            supabase.from('work_entries')
+                .select('*, workers(name), work_entry_tasks(task_id)')
+                .order('entry_date', { ascending: false })
         ])
 
         if (workersRes.data) setWorkers(workersRes.data)
 
-        const allTasks = tasksRes.data || []
-        setTasks(allTasks)
-        const allTaskNumbers = allTasks.map(t => t.task_number)
+        const tasks = tasksRes.data || []
+        setAllTasks(tasks)
 
-        if (entriesRes.data && allTasks.length > 0) {
-            // Find entries with incomplete tasks
+        if (entriesRes.data && tasks.length > 0) {
+            const allTaskIds = tasks.map(t => t.id)
             const pending: PendingItem[] = []
-            entriesRes.data.forEach(entry => {
-                const completedTasks = entry.tasks_completed.split(',').map(Number).filter((n: number) => !isNaN(n))
-                const remainingTasks = allTaskNumbers.filter(t => !completedTasks.includes(t))
 
-                if (remainingTasks.length > 0) {
-                    pending.push({ entry, remainingTasks })
+            entriesRes.data.forEach(entry => {
+                const completedTaskIds = entry.work_entry_tasks?.map((t: { task_id: string }) => t.task_id) || []
+                const remainingTaskIds = allTaskIds.filter(id => !completedTaskIds.includes(id))
+
+                if (remainingTaskIds.length > 0) {
+                    pending.push({
+                        entry,
+                        completedTasks: tasks.filter(t => completedTaskIds.includes(t.id)),
+                        remainingTasks: tasks.filter(t => remainingTaskIds.includes(t.id))
+                    })
                 }
             })
             setPendingItems(pending)
@@ -80,23 +87,18 @@ export default function PendingPage() {
         setLoading(false)
     }
 
-    function getTaskName(taskNum: number): string {
-        const task = tasks.find(t => t.task_number === taskNum)
-        return task ? task.task_name : `Task ${taskNum}`
-    }
-
     function openReassign(item: PendingItem) {
         setShowReassign(item)
         setReassignWorkerId('')
         setReassignQuantity(item.entry.quantity.toString())
-        setReassignTasks(item.remainingTasks)
+        setReassignTasks(item.remainingTasks.map(t => t.id))
     }
 
-    function toggleReassignTask(taskNum: number) {
-        if (reassignTasks.includes(taskNum)) {
-            setReassignTasks(reassignTasks.filter(t => t !== taskNum))
+    function toggleReassignTask(taskId: string) {
+        if (reassignTasks.includes(taskId)) {
+            setReassignTasks(reassignTasks.filter(t => t !== taskId))
         } else {
-            setReassignTasks([...reassignTasks, taskNum].sort((a, b) => a - b))
+            setReassignTasks([...reassignTasks, taskId])
         }
     }
 
@@ -107,23 +109,33 @@ export default function PendingPage() {
             return
         }
 
-        // Create new entry for the reassigned work
-        const { error } = await supabase
+        // Create new entry
+        const { data: newEntry, error } = await supabase
             .from('work_entries')
             .insert({
                 worker_id: reassignWorkerId,
                 quantity: parseInt(reassignQuantity),
-                tasks_completed: reassignTasks.join(','),
                 entry_date: new Date().toISOString().split('T')[0]
             })
+            .select()
+            .single()
 
-        if (error) {
+        if (error || !newEntry) {
             setMessage('Error reassigning work')
-        } else {
-            setMessage('Work reassigned successfully!')
-            setShowReassign(null)
-            fetchData()
+            setTimeout(() => setMessage(''), 3000)
+            return
         }
+
+        // Insert task links
+        const taskLinks = reassignTasks.map(taskId => ({
+            work_entry_id: newEntry.id,
+            task_id: taskId
+        }))
+        await supabase.from('work_entry_tasks').insert(taskLinks)
+
+        setMessage('Work reassigned successfully!')
+        setShowReassign(null)
+        fetchData()
         setTimeout(() => setMessage(''), 3000)
     }
 
@@ -168,15 +180,15 @@ export default function PendingPage() {
 
                             <div style={{ marginBottom: '0.75rem' }}>
                                 <div style={{ fontSize: '0.8125rem', color: '#64748b', marginBottom: '0.5rem' }}>
-                                    ✅ Completed: {item.entry.tasks_completed.split(',').map(t => `#${t}`).join(', ')}
+                                    ✅ Completed: {item.completedTasks.map(t => t.name).join(', ') || 'None'}
                                 </div>
                                 <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#f59e0b' }}>
                                     ⏳ {t('remainingTasks')}:
                                 </div>
                                 <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
-                                    {item.remainingTasks.map(taskNum => (
-                                        <span key={taskNum} className="badge badge-warning">
-                                            {taskNum}. {getTaskName(taskNum)}
+                                    {item.remainingTasks.map(task => (
+                                        <span key={task.id} className="badge badge-warning">
+                                            {task.name}
                                         </span>
                                     ))}
                                 </div>
@@ -233,21 +245,20 @@ export default function PendingPage() {
                                 value={reassignQuantity}
                                 onChange={(e) => setReassignQuantity(e.target.value)}
                                 min="1"
-                                max={showReassign.entry.quantity}
                             />
                         </div>
 
                         <div className="form-group">
                             <label className="form-label">{t('tasksCompleted')}</label>
                             <div className="checkbox-group">
-                                {showReassign.remainingTasks.map(taskNum => (
-                                    <label key={taskNum} className="checkbox-item">
+                                {showReassign.remainingTasks.map(task => (
+                                    <label key={task.id} className="checkbox-item">
                                         <input
                                             type="checkbox"
-                                            checked={reassignTasks.includes(taskNum)}
-                                            onChange={() => toggleReassignTask(taskNum)}
+                                            checked={reassignTasks.includes(task.id)}
+                                            onChange={() => toggleReassignTask(task.id)}
                                         />
-                                        <span>{taskNum}. {getTaskName(taskNum)}</span>
+                                        <span>{task.name}</span>
                                     </label>
                                 ))}
                             </div>

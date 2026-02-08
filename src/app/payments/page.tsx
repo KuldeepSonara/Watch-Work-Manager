@@ -4,19 +4,20 @@ import { useState, useEffect } from 'react'
 import { useLanguage } from '@/lib/LanguageContext'
 import { supabase } from '@/lib/supabase'
 
-interface TaskRate {
-    task_number: number
-    task_name: string
+interface Task {
+    id: string
+    name: string
     rate: number
+    sort_order: number
 }
 
 interface WorkEntry {
     id: string
     worker_id: string
     quantity: number
-    tasks_completed: string
     entry_date: string
     workers?: { id: string; name: string }
+    work_entry_tasks?: { task_id: string }[]
 }
 
 interface WorkerPayment {
@@ -26,7 +27,7 @@ interface WorkerPayment {
     entries: {
         date: string
         quantity: number
-        tasks: string
+        taskNames: string[]
         amount: number
     }[]
 }
@@ -34,8 +35,7 @@ interface WorkerPayment {
 export default function PaymentsPage() {
     const { t } = useLanguage()
     const [payments, setPayments] = useState<WorkerPayment[]>([])
-    const [tasks, setTasks] = useState<TaskRate[]>([])
-    const [taskRates, setTaskRates] = useState<{ [key: number]: number }>({})
+    const [tasks, setTasks] = useState<Task[]>([])
     const [loading, setLoading] = useState(true)
     const [expandedWorker, setExpandedWorker] = useState<string | null>(null)
 
@@ -46,22 +46,19 @@ export default function PaymentsPage() {
     async function fetchData() {
         setLoading(true)
 
-        const [ratesRes, entriesRes] = await Promise.all([
-            supabase.from('task_rates').select('task_number, task_name, rate').order('task_number'),
-            supabase.from('work_entries').select('*, workers(id, name)').order('entry_date', { ascending: false })
+        const [tasksRes, entriesRes] = await Promise.all([
+            supabase.from('tasks').select('*').eq('is_active', true).order('sort_order'),
+            supabase.from('work_entries')
+                .select('*, workers(id, name), work_entry_tasks(task_id)')
+                .order('entry_date', { ascending: false })
         ])
 
-        // Build rates map
-        const ratesMap: { [key: number]: number } = {}
-        const tasksList: TaskRate[] = []
-        if (ratesRes.data) {
-            ratesRes.data.forEach(r => {
-                ratesMap[r.task_number] = r.rate
-                tasksList.push(r)
-            })
-        }
-        setTaskRates(ratesMap)
+        const tasksList = tasksRes.data || []
         setTasks(tasksList)
+
+        // Build task lookup map
+        const taskMap: { [key: string]: Task } = {}
+        tasksList.forEach(t => { taskMap[t.id] = t })
 
         // Calculate payments per worker
         if (entriesRes.data) {
@@ -83,15 +80,25 @@ export default function PaymentsPage() {
                 }
 
                 // Calculate amount for this entry
-                const taskNums = entry.tasks_completed.split(',').map(Number).filter((n: number) => !isNaN(n))
-                const taskTotal = taskNums.reduce((sum: number, taskNum: number) => sum + (ratesMap[taskNum] || 0), 0)
+                const entryTasks = entry.work_entry_tasks || []
+                let taskTotal = 0
+                const taskNames: string[] = []
+
+                entryTasks.forEach((et: { task_id: string }) => {
+                    const task = taskMap[et.task_id]
+                    if (task) {
+                        taskTotal += task.rate
+                        taskNames.push(task.name)
+                    }
+                })
+
                 const entryAmount = entry.quantity * taskTotal
 
                 workerMap[workerId].totalAmount += entryAmount
                 workerMap[workerId].entries.push({
                     date: entry.entry_date,
                     quantity: entry.quantity,
-                    tasks: entry.tasks_completed,
+                    taskNames,
                     amount: entryAmount
                 })
             })
@@ -102,11 +109,6 @@ export default function PaymentsPage() {
         }
 
         setLoading(false)
-    }
-
-    function getTaskName(taskNum: number): string {
-        const task = tasks.find(t => t.task_number === taskNum)
-        return task ? task.task_name : `Task ${taskNum}`
     }
 
     const grandTotal = payments.reduce((sum, p) => sum + p.totalAmount, 0)
@@ -190,9 +192,9 @@ export default function PaymentsPage() {
                                                         <td>{entry.quantity}</td>
                                                         <td>
                                                             <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
-                                                                {entry.tasks.split(',').map(taskNum => (
-                                                                    <span key={taskNum} className="badge" title={getTaskName(parseInt(taskNum))}>
-                                                                        {taskNum}
+                                                                {entry.taskNames.map((name, i) => (
+                                                                    <span key={i} className="badge">
+                                                                        {name.substring(0, 10)}
                                                                     </span>
                                                                 ))}
                                                             </div>
@@ -229,10 +231,10 @@ export default function PaymentsPage() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {tasks.map(task => (
-                                        <tr key={task.task_number}>
-                                            <td>{task.task_number}</td>
-                                            <td>{task.task_name}</td>
+                                    {tasks.map((task, index) => (
+                                        <tr key={task.id}>
+                                            <td>{index + 1}</td>
+                                            <td>{task.name}</td>
                                             <td style={{ textAlign: 'right' }}>₹{task.rate.toFixed(2)}</td>
                                         </tr>
                                     ))}

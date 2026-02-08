@@ -90,26 +90,31 @@ export function InstallPrompt() {
                 <X size={18} />
             </button>
 
-            <div className="flex items-start gap-3">
-                <div className="shrink-0 w-12 h-12 bg-emerald-500/20 rounded-xl flex items-center justify-center">
-                    <Download size={24} className="text-emerald-400" />
+            <div className="flex items-start gap-4">
+                <div className="shrink-0 w-12 h-12 bg-slate-800 rounded-xl flex items-center justify-center border border-slate-700 shadow-sm">
+                    {/* Use app icon here if available, fallback to Download icon */}
+                    <img src="/icon-192x192.png" alt="App Icon" className="w-8 h-8 object-contain" onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                    }} />
+                    <Download size={24} className="text-emerald-500 hidden" />
                 </div>
                 <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-white text-sm mb-1">{t('installApp')}</h3>
-                    <p className="text-xs text-slate-400 mb-3">{t('installAppDesc')}</p>
+                    <h3 className="font-bold text-white text-base mb-1">{t('installApp')}</h3>
+                    <p className="text-sm text-slate-400 mb-4 leading-relaxed">{t('installAppDesc')}</p>
 
                     {isIOS ? (
-                        <div className="text-xs text-slate-300 bg-slate-800/50 rounded-lg p-2">
-                            <p className="flex items-center gap-1">
-                                {t('iosTapShare')} <Share size={14} className="text-blue-400" /> {t('iosThenAdd')}
+                        <div className="text-sm text-slate-300 bg-slate-800/80 rounded-lg p-3 border border-slate-700/50">
+                            <p className="flex items-center gap-2 flex-wrap">
+                                {t('iosTapShare')} <Share size={16} className="text-blue-400" /> {t('iosThenAdd')}
                             </p>
                         </div>
                     ) : (
                         <Button
                             onClick={handleInstallClick}
-                            className="w-full bg-emerald-600 hover:bg-emerald-500 h-9 text-xs font-medium"
+                            className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-semibold shadow-lg shadow-emerald-500/20 rounded-lg px-6"
                         >
-                            <Download size={14} className="mr-1.5" /> {t('installNow')}
+                            <Download size={18} className="mr-2" /> {t('installNow')}
                         </Button>
                     )}
                 </div>

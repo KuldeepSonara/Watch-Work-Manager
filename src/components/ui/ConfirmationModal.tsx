@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import { X, AlertTriangle } from 'lucide-react'
+import { useLanguage } from '@/lib/LanguageContext'
 import { Button } from '@/components/ui/button'
 
 interface ConfirmationModalProps {
@@ -21,11 +22,15 @@ export function ConfirmationModal({
     onConfirm,
     title,
     description,
-    confirmLabel = 'Confirm',
-    cancelLabel = 'Cancel',
+    confirmLabel,
+    cancelLabel,
     variant = 'success'
 }: ConfirmationModalProps) {
+    const { t } = useLanguage()
     if (!isOpen) return null
+
+    const finalConfirmLabel = confirmLabel || t('confirm')
+    const finalCancelLabel = cancelLabel || t('cancel')
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
@@ -60,8 +65,8 @@ export function ConfirmationModal({
                                 onClose()
                             }}
                             className={`${variant === 'danger' ? 'bg-red-600 hover:bg-red-700' :
-                                    variant === 'warning' ? 'bg-amber-600 hover:bg-amber-700' :
-                                        'bg-emerald-600 hover:bg-emerald-700'
+                                variant === 'warning' ? 'bg-amber-600 hover:bg-amber-700' :
+                                    'bg-emerald-600 hover:bg-emerald-700'
                                 } text-white`}
                         >
                             {confirmLabel}

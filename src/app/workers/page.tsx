@@ -59,16 +59,16 @@ export default function WorkersPage() {
             })
 
             if (res.ok) {
-                toast.success('Worker added!')
+                toast.success(t('workerAdded'))
                 setNewName('')
                 setIsAddModalOpen(false)
                 fetchWorkers()
             } else {
                 const data = await res.json()
-                toast.error(data.error || 'Failed to add worker')
+                toast.error(data.error || t('failedAddWorker'))
             }
         } catch {
-            toast.error('Failed to add worker')
+            toast.error(t('failedAddWorker'))
         }
     }
 
@@ -84,15 +84,15 @@ export default function WorkersPage() {
             })
 
             if (res.ok) {
-                toast.success('Worker updated!')
+                toast.success(t('workerUpdated'))
                 setEditingWorker(null)
                 fetchWorkers()
             } else {
                 const data = await res.json()
-                toast.error(data.error || 'Failed to update worker')
+                toast.error(data.error || t('failedUpdateWorker'))
             }
         } catch {
-            toast.error('Failed to update worker')
+            toast.error(t('failedUpdateWorker'))
         }
     }
 
@@ -106,13 +106,13 @@ export default function WorkersPage() {
         try {
             const res = await fetch(`/api/workers/${deleteId}`, { method: 'DELETE' })
             if (res.ok) {
-                toast.success('Worker deleted!')
+                toast.success(t('workerDeleted'))
                 fetchWorkers()
             } else {
-                toast.error('Failed to delete worker')
+                toast.error(t('failedDeleteWorker'))
             }
         } catch {
-            toast.error('Failed to delete worker')
+            toast.error(t('failedDeleteWorker'))
         } finally {
             setDeleteId(null)
         }
@@ -176,7 +176,7 @@ export default function WorkersPage() {
                 onClose={() => setEditingWorker(null)}
                 title={
                     <>
-                        <Pencil size={20} className="text-emerald-400" /> Edit Worker
+                        <Pencil size={20} className="text-emerald-400" /> {t('editWorker')}
                     </>
                 }
             >
@@ -194,7 +194,7 @@ export default function WorkersPage() {
                         />
                     </div>
                     <Button type="submit" className="big-action-btn bg-emerald-600 hover:bg-emerald-700 w-full">
-                        <Save size={18} /> Save Changes
+                        <Save size={18} /> {t('saveChanges')}
                     </Button>
                 </form>
             </Modal>
@@ -249,7 +249,7 @@ export default function WorkersPage() {
                                         </h3>
                                         {/* Pending Amount */}
                                         <div className="flex items-center md:justify-center gap-1.5 text-xs md:text-sm font-medium text-emerald-400">
-                                            <span> Pending: ₹{(worker.pendingAmount || 0).toFixed(2)}</span>
+                                            <span> {t('pendingPayment')}{(worker.pendingAmount || 0).toFixed(2)}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -259,7 +259,7 @@ export default function WorkersPage() {
                                     <button
                                         className="h-8 w-8 md:h-10 md:w-10 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors border border-slate-700/50"
                                         onClick={() => startEdit(worker)}
-                                        title="Edit"
+                                        title={t('edit')}
                                         aria-label="Edit worker"
                                     >
                                         <Pencil size={15} className="md:w-5 md:h-5" />
@@ -267,7 +267,7 @@ export default function WorkersPage() {
                                     <button
                                         className="h-8 w-8 md:h-10 md:w-10 rounded-lg bg-slate-800 hover:bg-red-900/20 text-slate-400 hover:text-red-400 flex items-center justify-center transition-colors border border-slate-700/50 hover:border-red-900/50"
                                         onClick={() => confirmDelete(worker.id)}
-                                        title="Delete"
+                                        title={t('delete')}
                                         aria-label="Delete worker"
                                     >
                                         <Trash2 size={15} className="md:w-5 md:h-5" />
@@ -283,9 +283,9 @@ export default function WorkersPage() {
                 isOpen={!!deleteId}
                 onClose={() => setDeleteId(null)}
                 onConfirm={handleDelete}
-                title="Delete Worker"
-                description="Are you sure you want to delete this worker? This action cannot be undone."
-                confirmLabel="Delete"
+                title={t('deleteWorkerTitle')}
+                description={t('deleteWorkerDesc')}
+                confirmLabel={t('delete')}
                 variant="danger"
             />
         </div>

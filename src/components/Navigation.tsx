@@ -52,13 +52,12 @@ export default function Navigation() {
                                 )
                             })}
 
-                            {/* Language Toggle */}
                             <button
                                 className="flex items-center gap-2 px-4 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition-all ml-2"
                                 onClick={() => setLanguage(language === 'en' ? 'gu' : 'en')}
                             >
                                 <Globe size={20} />
-                                <span className="text-sm font-medium">{language === 'en' ? 'ગુજરાતી' : 'English'}</span>
+                                <span className="text-sm font-medium">{language === 'en' ? t('gujarati') : t('english')}</span>
                             </button>
                         </div>
                     </div>

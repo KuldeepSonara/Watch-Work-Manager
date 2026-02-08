@@ -68,6 +68,7 @@ export const translations = {
         workerPayments: 'Worker Payments',
         amount: 'Amount',
         totalEarnings: 'Total Earnings',
+        markPaid: 'Mark as Paid',
 
         // Language
         language: 'Language',
@@ -143,6 +144,7 @@ export const translations = {
         workerPayments: 'કામદાર ચુકવણી',
         amount: 'રકમ',
         totalEarnings: 'કુલ કમાણી',
+        markPaid: 'ચુકવણી કરો',
 
         // Language
         language: 'ભાષા',

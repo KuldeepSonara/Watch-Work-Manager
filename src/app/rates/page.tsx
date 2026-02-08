@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useLanguage } from '@/lib/LanguageContext'
-import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -14,7 +13,6 @@ interface Task {
     id: string
     name: string
     rate: number
-    is_active: boolean
     sort_order: number
 }
 
@@ -22,11 +20,9 @@ export default function RatesPage() {
     const { t } = useLanguage()
     const [tasks, setTasks] = useState<Task[]>([])
     const [loading, setLoading] = useState(true)
-
-    // Form state
-    const [newTaskName, setNewTaskName] = useState('')
-    const [newTaskRate, setNewTaskRate] = useState('')
-    const [editId, setEditId] = useState<string | null>(null)
+    const [newName, setNewName] = useState('')
+    const [newRate, setNewRate] = useState('')
+    const [editingId, setEditingId] = useState<string | null>(null)
     const [editName, setEditName] = useState('')
     const [editRate, setEditRate] = useState('')
 
@@ -36,81 +32,91 @@ export default function RatesPage() {
 
     async function fetchTasks() {
         setLoading(true)
-        const { data, error } = await supabase
-            .from('tasks')
-            .select('*')
-            .eq('is_active', true)
-            .order('sort_order')
-
-        if (error) {
-            toast.error('Error loading tasks')
-        } else {
-            setTasks(data || [])
+        try {
+            const res = await fetch('/api/tasks')
+            const data = await res.json()
+            if (res.ok) {
+                setTasks(data)
+            } else {
+                toast.error(data.error || 'Failed to load tasks')
+            }
+        } catch {
+            toast.error('Failed to load tasks')
         }
         setLoading(false)
     }
 
-    async function handleAddTask(e: React.FormEvent) {
+    async function handleAdd(e: React.FormEvent) {
         e.preventDefault()
-        if (!newTaskName.trim()) return
+        if (!newName.trim()) return
 
-        const maxOrder = tasks.length > 0 ? Math.max(...tasks.map(t => t.sort_order)) : 0
-
-        const { error } = await supabase
-            .from('tasks')
-            .insert({
-                name: newTaskName.trim(),
-                rate: parseFloat(newTaskRate) || 0,
-                is_active: true,
-                sort_order: maxOrder + 1
+        try {
+            const res = await fetch('/api/tasks', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: newName.trim(),
+                    rate: parseFloat(newRate) || 0,
+                    sort_order: tasks.length
+                })
             })
 
-        if (error) {
-            toast.error('Error adding task')
-        } else {
-            toast.success('Task added!')
-            setNewTaskName('')
-            setNewTaskRate('')
-            fetchTasks()
+            if (res.ok) {
+                toast.success('Task added!')
+                setNewName('')
+                setNewRate('')
+                fetchTasks()
+            } else {
+                const data = await res.json()
+                toast.error(data.error || 'Failed to add task')
+            }
+        } catch {
+            toast.error('Failed to add task')
         }
     }
 
-    async function handleUpdateTask(id: string) {
-        const { error } = await supabase
-            .from('tasks')
-            .update({
-                name: editName,
-                rate: parseFloat(editRate) || 0
+    async function handleUpdate(id: string) {
+        try {
+            const res = await fetch(`/api/tasks/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: editName.trim(),
+                    rate: parseFloat(editRate) || 0
+                })
             })
-            .eq('id', id)
 
-        if (error) {
-            toast.error('Error updating task')
-        } else {
-            toast.success('Task updated!')
-            setEditId(null)
-            fetchTasks()
+            if (res.ok) {
+                toast.success('Task updated!')
+                setEditingId(null)
+                fetchTasks()
+            } else {
+                const data = await res.json()
+                toast.error(data.error || 'Failed to update task')
+            }
+        } catch {
+            toast.error('Failed to update task')
         }
     }
 
-    async function handleDeleteTask(id: string) {
+    async function handleDelete(id: string) {
         if (!confirm('Delete this task?')) return
 
-        const { error } = await supabase
-            .from('tasks')
-            .update({ is_active: false })
-            .eq('id', id)
-
-        if (error) {
-            toast.error('Error deleting task')
-        } else {
-            toast.success('Task deleted!')
-            fetchTasks()
+        try {
+            const res = await fetch(`/api/tasks/${id}`, { method: 'DELETE' })
+            if (res.ok) {
+                toast.success('Task deleted!')
+                fetchTasks()
+            } else {
+                toast.error('Failed to delete task')
+            }
+        } catch {
+            toast.error('Failed to delete task')
         }
     }
 
     function startEdit(task: Task) {
-        setEditId(task.id)
+        setEditingId(task.id)
         setEditName(task.name)
         setEditRate(task.rate.toString())
     }
@@ -125,24 +131,19 @@ export default function RatesPage() {
                 </h1>
             </div>
 
-            {/* Add New Task Form */}
+            {/* Add Task Form */}
             <Card className="mb-4 bg-slate-900/50 border-slate-800">
                 <CardContent className="p-4">
-                    <div className="text-base font-semibold mb-3 flex items-center gap-2 text-white">
-                        <Plus size={20} className="text-emerald-400" /> {t('add')} Task
-                    </div>
-                    <form onSubmit={handleAddTask}>
+                    <form onSubmit={handleAdd}>
                         <div className="form-group">
                             <label className="form-label">
                                 <FileText size={18} /> {t('taskName')}
                             </label>
                             <Input
-                                type="text"
                                 className="large-input bg-slate-800 border-slate-700"
-                                value={newTaskName}
-                                onChange={(e) => setNewTaskName(e.target.value)}
-                                placeholder="Enter task name..."
-                                required
+                                value={newName}
+                                onChange={(e) => setNewName(e.target.value)}
+                                placeholder={t('taskName')}
                             />
                         </div>
                         <div className="form-group">
@@ -151,32 +152,32 @@ export default function RatesPage() {
                             </label>
                             <Input
                                 type="number"
-                                className="large-input bg-slate-800 border-slate-700"
-                                value={newTaskRate}
-                                onChange={(e) => setNewTaskRate(e.target.value)}
-                                placeholder="0.00"
                                 step="0.01"
-                                min="0"
+                                className="large-input bg-slate-800 border-slate-700"
+                                value={newRate}
+                                onChange={(e) => setNewRate(e.target.value)}
+                                placeholder="0.00"
                             />
                         </div>
-                        <Button type="submit" className="big-action-btn w-full bg-emerald-600 hover:bg-emerald-700">
-                            <Plus size={20} /> {t('add')} Task
+                        <Button type="submit" className="big-action-btn bg-emerald-600 hover:bg-emerald-700 w-full">
+                            <Plus size={18} /> {t('add')}
                         </Button>
                     </form>
                 </CardContent>
             </Card>
 
             <h2 className="text-base font-semibold mb-3 flex items-center gap-2 text-white">
-                <FileText size={18} /> Task List
+                <FileText size={18} /> Tasks
             </h2>
 
+            {/* Tasks List */}
             {loading ? (
                 <div>
                     {[1, 2, 3].map(i => (
                         <Card key={i} className="mb-2 bg-slate-900/50 border-slate-800">
                             <CardContent className="p-4">
-                                <Skeleton className="h-4 w-20 mb-2 bg-slate-800" />
-                                <Skeleton className="h-6 w-40 bg-slate-800" />
+                                <Skeleton className="h-6 w-32 mb-2 bg-slate-800" />
+                                <Skeleton className="h-4 w-20 bg-slate-800" />
                             </CardContent>
                         </Card>
                     ))}
@@ -187,75 +188,60 @@ export default function RatesPage() {
                         <Coins size={48} />
                     </div>
                     <div className="empty-state-text">{t('noData')}</div>
-                    <div className="text-slate-500 text-sm">Add your first task above!</div>
                 </div>
             ) : (
                 <div>
                     {tasks.map((task, index) => (
                         <Card key={task.id} className="mb-2 bg-slate-900/50 border-slate-800">
-                            <CardContent className="p-4">
-                                {editId === task.id ? (
-                                    /* Edit Mode */
+                            <CardContent className="p-3">
+                                {editingId === task.id ? (
                                     <div>
-                                        <div className="form-group">
-                                            <label className="form-label">
-                                                <FileText size={18} /> {t('taskName')}
-                                            </label>
+                                        <div className="flex gap-2 mb-2">
                                             <Input
-                                                type="text"
-                                                className="large-input bg-slate-800 border-slate-700"
+                                                className="large-input flex-1 bg-slate-800 border-slate-700"
                                                 value={editName}
                                                 onChange={(e) => setEditName(e.target.value)}
+                                                autoFocus
                                             />
                                         </div>
-                                        <div className="form-group">
-                                            <label className="form-label">
-                                                <IndianRupee size={18} /> {t('ratePerItem')}
-                                            </label>
+                                        <div className="flex gap-2">
                                             <Input
                                                 type="number"
-                                                className="large-input bg-slate-800 border-slate-700"
+                                                step="0.01"
+                                                className="large-input flex-1 bg-slate-800 border-slate-700"
                                                 value={editRate}
                                                 onChange={(e) => setEditRate(e.target.value)}
-                                                step="0.01"
-                                                min="0"
+                                                placeholder="Rate"
                                             />
-                                        </div>
-                                        <div className="action-grid">
-                                            <Button
-                                                className="big-action-btn bg-emerald-600 hover:bg-emerald-700"
-                                                onClick={() => handleUpdateTask(task.id)}
+                                            <button
+                                                className="icon-btn icon-btn-edit bg-emerald-600"
+                                                onClick={() => handleUpdate(task.id)}
                                             >
-                                                <Save size={18} /> {t('save')}
-                                            </Button>
-                                            <Button
-                                                variant="secondary"
-                                                className="big-action-btn bg-slate-700 hover:bg-slate-600"
-                                                onClick={() => setEditId(null)}
+                                                <Save size={18} />
+                                            </button>
+                                            <button
+                                                className="icon-btn icon-btn-edit"
+                                                onClick={() => setEditingId(null)}
                                             >
-                                                <X size={18} /> {t('cancel')}
-                                            </Button>
+                                                <X size={18} />
+                                            </button>
                                         </div>
                                     </div>
                                 ) : (
-                                    /* View Mode */
-                                    <div className="flex justify-between items-center gap-3">
-                                        <div className="flex-1">
-                                            <div className="text-sm text-slate-400">#{index + 1}</div>
-                                            <div className="text-base font-semibold text-white">{task.name}</div>
+                                    <div className="flex justify-between items-center">
+                                        <div>
+                                            <div className="font-semibold text-white flex items-center gap-2">
+                                                <span className="text-emerald-400">{index + 1}.</span> {task.name}
+                                            </div>
+                                            <div className="text-emerald-400 font-bold flex items-center gap-1">
+                                                <IndianRupee size={14} /> {task.rate.toFixed(2)}
+                                            </div>
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            <div className="amount-display">₹{task.rate.toFixed(2)}</div>
-                                            <button
-                                                className="icon-btn icon-btn-edit"
-                                                onClick={() => startEdit(task)}
-                                            >
+                                        <div className="flex gap-2">
+                                            <button className="icon-btn icon-btn-edit" onClick={() => startEdit(task)}>
                                                 <Pencil size={18} />
                                             </button>
-                                            <button
-                                                className="icon-btn icon-btn-delete"
-                                                onClick={() => handleDeleteTask(task.id)}
-                                            >
+                                            <button className="icon-btn icon-btn-delete" onClick={() => handleDelete(task.id)}>
                                                 <Trash2 size={18} />
                                             </button>
                                         </div>

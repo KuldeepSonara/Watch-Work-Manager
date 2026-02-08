@@ -3,13 +3,12 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useLanguage } from '@/lib/LanguageContext'
-import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import { FileEdit, UserCircle, Package, Calendar, CheckSquare, Save, X, Pencil, Trash2 } from 'lucide-react'
+import { FileEdit, UserCircle, Package, Calendar, CheckSquare, Save, X, Pencil, Trash2, Clock, CheckCircle2 } from 'lucide-react'
 
 interface Worker {
     id: string
@@ -28,6 +27,7 @@ interface WorkEntry {
     worker_id: string
     quantity: number
     entry_date: string
+    status: string
     workers?: { name: string }
     work_entry_tasks?: { task_id: string }[]
 }
@@ -48,6 +48,7 @@ function EntryContent() {
     const [quantity, setQuantity] = useState('')
     const [selectedTasks, setSelectedTasks] = useState<string[]>([])
     const [entryDate, setEntryDate] = useState(new Date().toISOString().split('T')[0])
+    const [status, setStatus] = useState<'in_progress' | 'completed'>('in_progress')
 
     useEffect(() => {
         fetchData()
@@ -61,26 +62,26 @@ function EntryContent() {
                 setQuantity(entry.quantity.toString())
                 setSelectedTasks(entry.work_entry_tasks?.map(t => t.task_id) || [])
                 setEntryDate(entry.entry_date)
+                setStatus((entry.status as 'in_progress' | 'completed') || 'in_progress')
             }
         }
     }, [editId, entries])
 
     async function fetchData() {
         setLoading(true)
+        try {
+            const [workersRes, tasksRes, entriesRes] = await Promise.all([
+                fetch('/api/workers'),
+                fetch('/api/tasks'),
+                fetch('/api/entries')
+            ])
 
-        const [workersRes, tasksRes, entriesRes] = await Promise.all([
-            supabase.from('workers').select('*').order('name'),
-            supabase.from('tasks').select('*').eq('is_active', true).order('sort_order'),
-            supabase.from('work_entries')
-                .select('*, workers(name), work_entry_tasks(task_id)')
-                .order('entry_date', { ascending: false })
-                .limit(50)
-        ])
-
-        if (workersRes.data) setWorkers(workersRes.data)
-        if (tasksRes.data) setTasks(tasksRes.data)
-        if (entriesRes.data) setEntries(entriesRes.data)
-
+            if (workersRes.ok) setWorkers(await workersRes.json())
+            if (tasksRes.ok) setTasks(await tasksRes.json())
+            if (entriesRes.ok) setEntries(await entriesRes.json())
+        } catch {
+            toast.error('Failed to load data')
+        }
         setLoading(false)
     }
 
@@ -100,59 +101,39 @@ function EntryContent() {
             return
         }
 
-        if (editId) {
-            const { error: updateError } = await supabase
-                .from('work_entries')
-                .update({
-                    worker_id: workerId,
-                    quantity: parseInt(quantity),
-                    entry_date: entryDate
-                })
-                .eq('id', editId)
-
-            if (updateError) {
-                toast.error('Error updating entry')
-                return
+        try {
+            const body = {
+                worker_id: workerId,
+                quantity: parseInt(quantity),
+                entry_date: entryDate,
+                status,
+                task_ids: selectedTasks
             }
 
-            await supabase.from('work_entry_tasks').delete().eq('work_entry_id', editId)
-
-            const taskLinks = selectedTasks.map(taskId => ({
-                work_entry_id: editId,
-                task_id: taskId
-            }))
-            await supabase.from('work_entry_tasks').insert(taskLinks)
-
-            toast.success('Entry updated!')
-            router.push('/entry')
-            resetForm()
-        } else {
-            const { data: newEntry, error: insertError } = await supabase
-                .from('work_entries')
-                .insert({
-                    worker_id: workerId,
-                    quantity: parseInt(quantity),
-                    entry_date: entryDate
+            const res = editId
+                ? await fetch(`/api/entries/${editId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
                 })
-                .select()
-                .single()
+                : await fetch('/api/entries', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                })
 
-            if (insertError || !newEntry) {
-                toast.error('Error adding entry')
-                return
+            if (res.ok) {
+                toast.success(editId ? 'Entry updated!' : 'Entry saved!')
+                if (editId) router.push('/entry')
+                resetForm()
+                fetchData()
+            } else {
+                const data = await res.json()
+                toast.error(data.error || 'Failed to save entry')
             }
-
-            const taskLinks = selectedTasks.map(taskId => ({
-                work_entry_id: newEntry.id,
-                task_id: taskId
-            }))
-            await supabase.from('work_entry_tasks').insert(taskLinks)
-
-            toast.success('Entry saved!')
-            resetForm()
+        } catch {
+            toast.error('Failed to save entry')
         }
-
-        fetchData()
     }
 
     function resetForm() {
@@ -160,19 +141,22 @@ function EntryContent() {
         setQuantity('')
         setSelectedTasks([])
         setEntryDate(new Date().toISOString().split('T')[0])
+        setStatus('in_progress')
     }
 
     async function handleDelete(id: string) {
         if (!confirm('Delete this entry?')) return
 
-        const { error } = await supabase
-            .from('work_entries')
-            .delete()
-            .eq('id', id)
-
-        if (!error) {
-            toast.success('Entry deleted!')
-            fetchData()
+        try {
+            const res = await fetch(`/api/entries/${id}`, { method: 'DELETE' })
+            if (res.ok) {
+                toast.success('Entry deleted!')
+                fetchData()
+            } else {
+                toast.error('Failed to delete entry')
+            }
+        } catch {
+            toast.error('Failed to delete entry')
         }
     }
 
@@ -244,6 +228,29 @@ function EntryContent() {
                                 onChange={(e) => setEntryDate(e.target.value)}
                                 required
                             />
+                        </div>
+
+                        {/* Status Selection */}
+                        <div className="form-group">
+                            <label className="form-label">
+                                <Clock size={18} /> {t('status')}
+                            </label>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div
+                                    className={`checkbox-item ${status === 'in_progress' ? 'selected' : ''}`}
+                                    onClick={() => setStatus('in_progress')}
+                                >
+                                    <Clock size={20} className="text-amber-400" />
+                                    <span>{t('inProgress')}</span>
+                                </div>
+                                <div
+                                    className={`checkbox-item ${status === 'completed' ? 'selected' : ''}`}
+                                    onClick={() => setStatus('completed')}
+                                >
+                                    <CheckCircle2 size={20} className="text-emerald-400" />
+                                    <span>{t('completed')}</span>
+                                </div>
+                            </div>
                         </div>
 
                         <div className="form-group">
@@ -322,6 +329,18 @@ function EntryContent() {
                                         </div>
                                         <div className="entry-date">
                                             <Calendar size={14} /> {new Date(entry.entry_date).toLocaleDateString()}
+                                        </div>
+                                        {/* Status Badge */}
+                                        <div className="mt-2">
+                                            {entry.status === 'completed' ? (
+                                                <span className="status-badge status-badge-success">
+                                                    <CheckCircle2 size={14} /> {t('completed')}
+                                                </span>
+                                            ) : (
+                                                <span className="status-badge status-badge-warning">
+                                                    <Clock size={14} /> {t('inProgress')}
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
                                     <div className="entry-quantity">{entry.quantity}</div>

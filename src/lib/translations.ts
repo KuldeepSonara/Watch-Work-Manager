@@ -54,6 +54,14 @@ export const translations = {
         reassign: 'Reassign',
         reassignTo: 'Reassign To',
 
+        // Status
+        status: 'Status',
+        inProgress: 'In Progress',
+        completed: 'Completed',
+        changeStatus: 'Change Status',
+        markComplete: 'Mark Complete',
+        markInProgress: 'Mark In Progress',
+
         // Payments
         paymentSummary: 'Payment Summary',
         totalAmount: 'Total Amount',
@@ -120,6 +128,14 @@ export const translations = {
         remainingTasks: 'બાકી કામ',
         reassign: 'ફરી સોંપો',
         reassignTo: 'ને સોંપો',
+
+        // Status
+        status: 'સ્થિતિ',
+        inProgress: 'ચાલુ',
+        completed: 'પૂર્ણ',
+        changeStatus: 'સ્થિતિ બદલો',
+        markComplete: 'પૂર્ણ કરો',
+        markInProgress: 'ચાલુ કરો',
 
         // Payments
         paymentSummary: 'ચુકવણી સારાંશ',

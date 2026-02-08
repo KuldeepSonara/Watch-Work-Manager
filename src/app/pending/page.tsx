@@ -2,13 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { useLanguage } from '@/lib/LanguageContext'
-import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Clock, UserCircle, Package, CheckSquare, RefreshCw, Save, X, Calendar, Check } from 'lucide-react'
+import { Clock, UserCircle, Package, CheckSquare, RefreshCw, Save, X, Calendar, Check, CheckCircle2, ListFilter } from 'lucide-react'
 
 interface Worker {
     id: string
@@ -27,6 +26,7 @@ interface WorkEntry {
     worker_id: string
     quantity: number
     entry_date: string
+    status: string
     workers?: { name: string }
     work_entry_tasks?: { task_id: string }[]
 }
@@ -43,6 +43,7 @@ export default function PendingPage() {
     const [allTasks, setAllTasks] = useState<Task[]>([])
     const [pendingItems, setPendingItems] = useState<PendingItem[]>([])
     const [loading, setLoading] = useState(true)
+    const [filter, setFilter] = useState<'all' | 'in_progress' | 'completed'>('all')
 
     // Reassign modal
     const [showReassign, setShowReassign] = useState<PendingItem | null>(null)
@@ -56,39 +57,41 @@ export default function PendingPage() {
 
     async function fetchData() {
         setLoading(true)
+        try {
+            const [workersRes, tasksRes, entriesRes] = await Promise.all([
+                fetch('/api/workers'),
+                fetch('/api/tasks'),
+                fetch('/api/entries')
+            ])
 
-        const [workersRes, tasksRes, entriesRes] = await Promise.all([
-            supabase.from('workers').select('*').order('name'),
-            supabase.from('tasks').select('*').eq('is_active', true).order('sort_order'),
-            supabase.from('work_entries')
-                .select('*, workers(name), work_entry_tasks(task_id)')
-                .order('entry_date', { ascending: false })
-        ])
+            if (workersRes.ok) setWorkers(await workersRes.json())
 
-        if (workersRes.data) setWorkers(workersRes.data)
+            const tasks = tasksRes.ok ? await tasksRes.json() : []
+            setAllTasks(tasks)
 
-        const tasks = tasksRes.data || []
-        setAllTasks(tasks)
+            if (entriesRes.ok && tasks.length > 0) {
+                const entries: WorkEntry[] = await entriesRes.json()
+                const allTaskIds = tasks.map((t: Task) => t.id)
+                const pending: PendingItem[] = []
 
-        if (entriesRes.data && tasks.length > 0) {
-            const allTaskIds = tasks.map(t => t.id)
-            const pending: PendingItem[] = []
+                entries.forEach(entry => {
+                    const completedTaskIds = entry.work_entry_tasks?.map(t => t.task_id) || []
+                    const remainingTaskIds = allTaskIds.filter((id: string) => !completedTaskIds.includes(id))
 
-            entriesRes.data.forEach(entry => {
-                const completedTaskIds = entry.work_entry_tasks?.map((t: { task_id: string }) => t.task_id) || []
-                const remainingTaskIds = allTaskIds.filter(id => !completedTaskIds.includes(id))
-
-                if (remainingTaskIds.length > 0) {
-                    pending.push({
-                        entry,
-                        completedTasks: tasks.filter(t => completedTaskIds.includes(t.id)),
-                        remainingTasks: tasks.filter(t => remainingTaskIds.includes(t.id))
-                    })
-                }
-            })
-            setPendingItems(pending)
+                    // Show entries with remaining tasks OR in_progress status
+                    if (remainingTaskIds.length > 0 || entry.status === 'in_progress') {
+                        pending.push({
+                            entry,
+                            completedTasks: tasks.filter((t: Task) => completedTaskIds.includes(t.id)),
+                            remainingTasks: tasks.filter((t: Task) => remainingTaskIds.includes(t.id))
+                        })
+                    }
+                })
+                setPendingItems(pending)
+            }
+        } catch {
+            toast.error('Failed to load data')
         }
-
         setLoading(false)
     }
 
@@ -113,31 +116,60 @@ export default function PendingPage() {
             return
         }
 
-        const { data: newEntry, error } = await supabase
-            .from('work_entries')
-            .insert({
-                worker_id: reassignWorkerId,
-                quantity: parseInt(reassignQuantity),
-                entry_date: new Date().toISOString().split('T')[0]
+        try {
+            const res = await fetch('/api/entries', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    worker_id: reassignWorkerId,
+                    quantity: parseInt(reassignQuantity),
+                    entry_date: new Date().toISOString().split('T')[0],
+                    status: 'in_progress',
+                    task_ids: reassignTasks
+                })
             })
-            .select()
-            .single()
 
-        if (error || !newEntry) {
-            toast.error('Error reassigning work')
-            return
+            if (res.ok) {
+                toast.success('Work reassigned!')
+                setShowReassign(null)
+                fetchData()
+            } else {
+                const data = await res.json()
+                toast.error(data.error || 'Failed to reassign')
+            }
+        } catch {
+            toast.error('Failed to reassign work')
         }
-
-        const taskLinks = reassignTasks.map(taskId => ({
-            work_entry_id: newEntry.id,
-            task_id: taskId
-        }))
-        await supabase.from('work_entry_tasks').insert(taskLinks)
-
-        toast.success('Work reassigned!')
-        setShowReassign(null)
-        fetchData()
     }
+
+    // Change status of an entry
+    async function handleStatusChange(entryId: string, newStatus: 'in_progress' | 'completed') {
+        try {
+            const res = await fetch(`/api/entries/${entryId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: newStatus })
+            })
+
+            if (res.ok) {
+                toast.success(newStatus === 'completed' ? 'Marked as complete!' : 'Marked as in progress!')
+                fetchData()
+            } else {
+                toast.error('Failed to update status')
+            }
+        } catch {
+            toast.error('Failed to update status')
+        }
+    }
+
+    // Filter items
+    const filteredItems = pendingItems.filter(item => {
+        if (filter === 'all') return true
+        return item.entry.status === filter
+    })
+
+    const inProgressCount = pendingItems.filter(i => i.entry.status === 'in_progress').length
+    const completedCount = pendingItems.filter(i => i.entry.status === 'completed').length
 
     return (
         <div>
@@ -147,6 +179,37 @@ export default function PendingPage() {
                     <Clock className="icon" size={28} />
                     {t('pendingWork')}
                 </h1>
+            </div>
+
+            {/* Status Filter Tabs */}
+            <div className="flex gap-2 mb-4 overflow-x-auto hide-scrollbar">
+                <button
+                    className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${filter === 'all'
+                            ? 'bg-emerald-600 text-white'
+                            : 'bg-slate-800 text-slate-300'
+                        }`}
+                    onClick={() => setFilter('all')}
+                >
+                    <ListFilter size={16} className="inline mr-1" /> All ({pendingItems.length})
+                </button>
+                <button
+                    className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${filter === 'in_progress'
+                            ? 'bg-amber-600 text-white'
+                            : 'bg-slate-800 text-slate-300'
+                        }`}
+                    onClick={() => setFilter('in_progress')}
+                >
+                    <Clock size={16} className="inline mr-1" /> {t('inProgress')} ({inProgressCount})
+                </button>
+                <button
+                    className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${filter === 'completed'
+                            ? 'bg-green-600 text-white'
+                            : 'bg-slate-800 text-slate-300'
+                        }`}
+                    onClick={() => setFilter('completed')}
+                >
+                    <CheckCircle2 size={16} className="inline mr-1" /> {t('completed')} ({completedCount})
+                </button>
             </div>
 
             {loading ? (
@@ -161,17 +224,19 @@ export default function PendingPage() {
                         </Card>
                     ))}
                 </div>
-            ) : pendingItems.length === 0 ? (
+            ) : filteredItems.length === 0 ? (
                 <div className="empty-state">
                     <div className="empty-state-icon">
                         <Check size={48} />
                     </div>
-                    <div className="empty-state-text">All work complete!</div>
+                    <div className="empty-state-text">
+                        {filter === 'all' ? 'All work complete!' : `No ${filter === 'in_progress' ? 'in progress' : 'completed'} work`}
+                    </div>
                     <div className="text-slate-500 text-sm">{t('noData')}</div>
                 </div>
             ) : (
                 <div>
-                    {pendingItems.map(item => (
+                    {filteredItems.map(item => (
                         <Card key={item.entry.id} className="mb-3 bg-slate-900/50 border-slate-800">
                             <CardContent className="p-4">
                                 <div className="flex justify-between items-start mb-3">
@@ -181,6 +246,18 @@ export default function PendingPage() {
                                         </div>
                                         <div className="text-sm text-slate-400 flex items-center gap-1 mt-1">
                                             <Calendar size={14} /> {new Date(item.entry.entry_date).toLocaleDateString()}
+                                        </div>
+                                        {/* Status Badge */}
+                                        <div className="mt-2">
+                                            {item.entry.status === 'completed' ? (
+                                                <span className="status-badge status-badge-success">
+                                                    <CheckCircle2 size={14} /> {t('completed')}
+                                                </span>
+                                            ) : (
+                                                <span className="status-badge status-badge-warning">
+                                                    <Clock size={14} /> {t('inProgress')}
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
                                     <div className="text-xl font-bold text-emerald-400">
@@ -192,24 +269,51 @@ export default function PendingPage() {
                                     <div className="text-sm text-slate-400 mb-1 flex items-center gap-1">
                                         <Check size={14} /> Done: {item.completedTasks.map(t => t.name).join(', ') || 'None'}
                                     </div>
-                                    <div className="text-sm font-semibold mb-1 text-amber-400 flex items-center gap-1">
-                                        <Clock size={14} /> {t('remainingTasks')}:
-                                    </div>
-                                    <div className="flex flex-wrap gap-1">
-                                        {item.remainingTasks.map(task => (
-                                            <span key={task.id} className="status-badge status-badge-warning">
-                                                {task.name}
-                                            </span>
-                                        ))}
-                                    </div>
+                                    {item.remainingTasks.length > 0 && (
+                                        <>
+                                            <div className="text-sm font-semibold mb-1 text-amber-400 flex items-center gap-1">
+                                                <Clock size={14} /> {t('remainingTasks')}:
+                                            </div>
+                                            <div className="flex flex-wrap gap-1">
+                                                {item.remainingTasks.map(task => (
+                                                    <span key={task.id} className="status-badge status-badge-warning">
+                                                        {task.name}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
 
-                                <Button
-                                    className="big-action-btn w-full bg-blue-600 hover:bg-blue-700"
-                                    onClick={() => openReassign(item)}
-                                >
-                                    <RefreshCw size={18} /> {t('reassign')}
-                                </Button>
+                                {/* Action Buttons */}
+                                <div className="grid grid-cols-2 gap-2">
+                                    {/* Status Toggle Button */}
+                                    {item.entry.status === 'in_progress' ? (
+                                        <Button
+                                            className="big-action-btn bg-green-600 hover:bg-green-700"
+                                            onClick={() => handleStatusChange(item.entry.id, 'completed')}
+                                        >
+                                            <CheckCircle2 size={18} /> {t('markComplete')}
+                                        </Button>
+                                    ) : (
+                                        <Button
+                                            className="big-action-btn bg-amber-600 hover:bg-amber-700"
+                                            onClick={() => handleStatusChange(item.entry.id, 'in_progress')}
+                                        >
+                                            <Clock size={18} /> {t('markInProgress')}
+                                        </Button>
+                                    )}
+
+                                    {/* Reassign Button - only show if remaining tasks */}
+                                    {item.remainingTasks.length > 0 && (
+                                        <Button
+                                            className="big-action-btn bg-blue-600 hover:bg-blue-700"
+                                            onClick={() => openReassign(item)}
+                                        >
+                                            <RefreshCw size={18} /> {t('reassign')}
+                                        </Button>
+                                    )}
+                                </div>
                             </CardContent>
                         </Card>
                     ))}

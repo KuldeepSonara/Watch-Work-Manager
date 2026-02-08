@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Toaster } from "sonner";
 import { LanguageProvider } from "@/lib/LanguageContext";
 import Navigation from "@/components/Navigation";
+import { SpeedInsights } from "@vercel/speed-insights/next"
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -37,6 +38,7 @@ export default function RootLayout({
             duration={3000}
             theme="dark"
           />
+          <SpeedInsights />
         </LanguageProvider>
       </body>
     </html>

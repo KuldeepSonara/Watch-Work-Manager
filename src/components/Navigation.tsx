@@ -21,78 +21,102 @@ export default function Navigation() {
 
     return (
         <>
-            {/* Desktop Top Navigation - Hidden on mobile */}
-            <nav className="hidden md:block fixed top-0 left-0 right-0 bg-slate-900/95 backdrop-blur-sm border-b border-slate-800 z-50">
-                <div className="max-w-5xl mx-auto px-4">
-                    <div className="flex items-center justify-between h-16">
-                        {/* Logo */}
-                        <Link href="/" className="flex items-center gap-2 text-white font-bold text-lg">
-                            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center">
-                                <Watch size={20} className="text-white" />
-                            </div>
-                            <span>{t('appTitle')}</span>
-                        </Link>
+            {/* Desktop Top Navigation */}
+            <nav className="hidden md:block fixed top-0 left-0 right-0 h-20 bg-slate-950/80 backdrop-blur-md border-b border-white/5 z-50 transition-all duration-300">
+                <div className="max-w-7xl mx-auto px-6 h-full flex items-center justify-between">
+                    {/* Logo & Brand */}
+                    <Link href="/" className="flex items-center gap-3 group">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/20 group-hover:shadow-emerald-500/40 transition-all duration-300">
+                            <Watch size={22} className="text-white" />
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-white font-bold text-lg tracking-tight leading-none group-hover:text-emerald-400 transition-colors">
+                                {t('appTitle')}
+                            </span>
+                            <span className="text-xs text-slate-400 font-medium tracking-wide uppercase">
+                                Management System
+                            </span>
+                        </div>
+                    </Link>
 
-                        {/* Nav Links */}
-                        <div className="flex items-center gap-1">
+                    {/* Nav Links & Actions */}
+                    <div className="flex items-center gap-6">
+                        <div className="flex items-center bg-white/5 rounded-full p-1 border border-white/5 backdrop-blur-sm">
                             {navItems.slice(1).map(item => {
                                 const isActive = pathname === item.href
                                 return (
                                     <Link
                                         key={item.href}
                                         href={item.href}
-                                        className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 ${isActive
-                                            ? 'text-emerald-400 bg-emerald-400/10'
-                                            : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                                        className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300 ${isActive
+                                            ? 'text-white bg-emerald-600 shadow-md shadow-emerald-500/20'
+                                            : 'text-slate-400 hover:text-white hover:bg-white/10'
                                             }`}
                                     >
-                                        {item.icon}
+                                        <div className={isActive ? "" : "opacity-70"}>{item.icon}</div>
                                         <span className="text-sm font-medium">{t(item.key)}</span>
                                     </Link>
                                 )
                             })}
-
-                            <button
-                                className="flex items-center gap-2 px-4 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition-all ml-2"
-                                onClick={() => setLanguage(language === 'en' ? 'gu' : 'en')}
-                            >
-                                <Globe size={20} />
-                                <span className="text-sm font-medium">{language === 'en' ? t('gujarati') : t('english')}</span>
-                            </button>
                         </div>
+
+                        <div className="w-px h-8 bg-white/10 mx-2"></div>
+
+                        <button
+                            className="flex items-center gap-2 px-4 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-white/10 transition-all border border-transparent hover:border-white/10"
+                            onClick={() => setLanguage(language === 'en' ? 'gu' : 'en')}
+                        >
+                            <Globe size={18} className="text-emerald-400" />
+                            <span className="text-sm font-medium">{language === 'en' ? t('gujarati') : t('english')}</span>
+                        </button>
                     </div>
                 </div>
             </nav>
 
-            {/* Mobile Bottom Navigation - Visible only on mobile */}
+            {/* Mobile Top Header - Replaces Floating Button */}
+            <nav className="md:hidden fixed top-0 left-0 right-0 h-16 bg-slate-950/80 backdrop-blur-md border-b border-white/5 z-50 flex items-center justify-between px-4 safe-area-top">
+                <Link href="/" className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                        <Watch size={20} className="text-white" />
+                    </div>
+                    <span className="text-white font-bold text-base truncate max-w-[180px]">
+                        {t('appTitle')}
+                    </span>
+                </Link>
 
-            {/* Floating Language Toggle for Mobile */}
-            <button
-                className="md:hidden fixed top-6 right-4 w-12 h-12 rounded-full bg-slate-800/80 backdrop-blur-md border border-slate-700 shadow-lg text-white flex items-center justify-center z-50 active:scale-95 transition-all duration-200"
-                onClick={() => setLanguage(language === 'en' ? 'gu' : 'en')}
-            >
-                <span className="font-bold text-sm">
-                    {language === 'en' ? 'ગુ' : 'EN'}
-                </span>
-            </button>
+                <button
+                    className="flex items-center justify-center w-10 h-10 rounded-full bg-slate-900 border border-slate-800 text-white active:scale-95 transition-all"
+                    onClick={() => setLanguage(language === 'en' ? 'gu' : 'en')}
+                >
+                    <span className="font-bold text-xs">
+                        {language === 'en' ? 'ગુ' : 'EN'}
+                    </span>
+                </button>
+            </nav>
 
-            <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-sm border-t border-slate-800 z-50 safe-area-bottom">
-                <div className="flex justify-around items-center h-16 px-1">
+            {/* Mobile Bottom Navigation - Floating Island Style */}
+            <nav className="md:hidden fixed bottom-4 left-2 right-2 sm:left-6 sm:right-6 bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl shadow-black/50 z-50 safe-area-bottom">
+                <div className="flex justify-between items-center h-16 px-1">
                     {navItems.map(item => {
                         const isActive = pathname === item.href
                         return (
                             <Link
                                 key={item.href}
                                 href={item.href}
-                                className={`flex flex-col items-center justify-center py-2 px-1 min-w-[50px] rounded-xl transition-all duration-200 ${isActive
-                                    ? 'text-emerald-400 bg-emerald-400/10'
-                                    : 'text-slate-400 active:text-white active:bg-slate-800'
+                                className={`flex flex-col items-center justify-center flex-1 min-w-0 py-1 relative group ${isActive
+                                    ? 'text-emerald-400'
+                                    : 'text-slate-500 hover:text-slate-300'
                                     }`}
                             >
-                                <div className={`${isActive ? 'scale-110' : ''} transition-transform`}>
+                                {isActive && (
+                                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 w-8 sm:w-12 h-1 bg-emerald-500 rounded-b-full shadow-[0_0_10px_rgba(16,185,129,0.5)]"></span>
+                                )}
+                                <div className={`mb-0.5 transition-all duration-300 ${isActive ? '-translate-y-1 scale-110' : 'group-hover:-translate-y-0.5'}`}>
                                     {item.icon}
                                 </div>
-                                <span className="text-[10px] mt-1 font-medium truncate max-w-[60px]">{t(item.key)}</span>
+                                <span className={`text-[10px] font-medium leading-none transition-colors truncate w-full text-center px-0.5 ${isActive ? 'text-emerald-400 opacity-100' : 'text-slate-500 opacity-0 group-hover:opacity-100'}`}>
+                                    {t(item.key)}
+                                </span>
                             </Link>
                         )
                     })}

@@ -44,16 +44,24 @@ export function InstallPrompt() {
             return
         }
 
-        // Show prompt after a delay if not installed
+        // Show prompt logic
         if (!isStandaloneMode) {
-            const timer = setTimeout(() => setShowPrompt(true), 3000)
-            return () => clearTimeout(timer)
+            if (isIOSDevice) {
+                // For iOS, show after delay since there's no event
+                const timer = setTimeout(() => setShowPrompt(true), 3000)
+                return () => clearTimeout(timer)
+            }
+            // For Android/others, wait for the event
         }
 
         // Listen for beforeinstallprompt event (Chrome/Edge/Android)
         const handleBeforeInstallPrompt = (e: Event) => {
             e.preventDefault()
             setDeferredPrompt(e as BeforeInstallPromptEvent)
+            // Show prompt when event is captured
+            if (!isStandaloneMode) {
+                setShowPrompt(true)
+            }
         }
 
         window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
@@ -82,7 +90,7 @@ export function InstallPrompt() {
     }
 
     return (
-        <div className="fixed bottom-20 left-4 right-4 md:left-auto md:right-4 md:w-80 bg-slate-900 border border-slate-700 rounded-xl p-4 shadow-2xl z-50 animate-in slide-in-from-bottom-4">
+        <div className="fixed bottom-28 left-4 right-4 md:left-auto md:right-4 md:w-80 bg-slate-900 border border-slate-700 rounded-xl p-4 shadow-2xl z-[100] animate-in slide-in-from-bottom-4">
             <button
                 onClick={handleDismiss}
                 className="absolute top-3 right-3 text-slate-400 hover:text-white transition-colors"

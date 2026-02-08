@@ -28,8 +28,8 @@ export default function RootLayout({
       <body className="dark bg-slate-950 text-white antialiased">
         <LanguageProvider>
           <Navigation />
-          {/* Main content: padding for top nav on desktop, bottom nav on mobile */}
-          <main className="container pt-8 pb-28 md:pt-24 md:pb-12 px-4 md:px-6">
+          {/* Main content: padding for top nav on desktop/mobile, bottom nav on mobile */}
+          <main className="container pt-20 pb-28 md:pt-28 md:pb-12 px-4 md:px-6">
             {children}
           </main>
           <Toaster

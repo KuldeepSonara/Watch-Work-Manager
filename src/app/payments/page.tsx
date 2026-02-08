@@ -76,8 +76,8 @@ export default function PaymentsPage() {
                 }
 
                 // Calculate amount for this entry
-                const tasks = entry.tasks_completed.split(',').map(Number).filter(n => !isNaN(n))
-                const taskTotal = tasks.reduce((sum, taskNum) => sum + (ratesMap[taskNum] || 0), 0)
+                const tasks = entry.tasks_completed.split(',').map(Number).filter((n: number) => !isNaN(n))
+                const taskTotal = tasks.reduce((sum: number, taskNum: number) => sum + (ratesMap[taskNum] || 0), 0)
                 const entryAmount = entry.quantity * taskTotal
 
                 workerMap[workerId].totalAmount += entryAmount

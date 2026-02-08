@@ -56,7 +56,7 @@ export default function PendingPage() {
             // Find entries with incomplete tasks
             const pending: PendingItem[] = []
             entriesRes.data.forEach(entry => {
-                const completedTasks = entry.tasks_completed.split(',').map(Number).filter(n => !isNaN(n))
+                const completedTasks = entry.tasks_completed.split(',').map(Number).filter((n: number) => !isNaN(n))
                 const remainingTasks = ALL_TASKS.filter(t => !completedTasks.includes(t))
 
                 if (remainingTasks.length > 0) {

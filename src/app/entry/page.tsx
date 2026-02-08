@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useLanguage } from '@/lib/LanguageContext'
 import { supabase } from '@/lib/supabase'
@@ -19,7 +19,7 @@ interface WorkEntry {
     workers?: { name: string }
 }
 
-export default function EntryPage() {
+function EntryContent() {
     const { t } = useLanguage()
     const router = useRouter()
     const searchParams = useSearchParams()
@@ -46,7 +46,7 @@ export default function EntryPage() {
             if (entry) {
                 setWorkerId(entry.worker_id)
                 setQuantity(entry.quantity.toString())
-                setSelectedTasks(entry.tasks_completed.split(',').map(Number).filter(n => !isNaN(n)))
+                setSelectedTasks(entry.tasks_completed.split(',').map(Number).filter((n: number) => !isNaN(n)))
                 setEntryDate(entry.entry_date)
             }
         }
@@ -287,5 +287,13 @@ export default function EntryPage() {
                 </div>
             )}
         </div>
+    )
+}
+
+export default function EntryPage() {
+    return (
+        <Suspense fallback={<div className="text-center">Loading...</div>}>
+            <EntryContent />
+        </Suspense>
     )
 }

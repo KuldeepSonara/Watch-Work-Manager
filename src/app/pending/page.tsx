@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Clock, UserCircle, Package, CheckSquare, RefreshCw, Save, X, Calendar, Check, CheckCircle2, ListFilter } from 'lucide-react'
+import { Modal } from '@/components/ui/Modal'
 
 interface Worker {
     id: string
@@ -60,7 +61,7 @@ export default function PendingPage() {
         try {
             const [workersRes, tasksRes, entriesRes] = await Promise.all([
                 fetch('/api/workers'),
-                fetch('/api/tasks'),
+                fetch('/api/manage-tasks'),
                 fetch('/api/entries')
             ])
 
@@ -185,8 +186,8 @@ export default function PendingPage() {
             <div className="flex gap-2 mb-4 overflow-x-auto hide-scrollbar">
                 <button
                     className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${filter === 'all'
-                            ? 'bg-emerald-600 text-white'
-                            : 'bg-slate-800 text-slate-300'
+                        ? 'bg-emerald-600 text-white'
+                        : 'bg-slate-800 text-slate-300'
                         }`}
                     onClick={() => setFilter('all')}
                 >
@@ -194,8 +195,8 @@ export default function PendingPage() {
                 </button>
                 <button
                     className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${filter === 'in_progress'
-                            ? 'bg-amber-600 text-white'
-                            : 'bg-slate-800 text-slate-300'
+                        ? 'bg-amber-600 text-white'
+                        : 'bg-slate-800 text-slate-300'
                         }`}
                     onClick={() => setFilter('in_progress')}
                 >
@@ -203,8 +204,8 @@ export default function PendingPage() {
                 </button>
                 <button
                     className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${filter === 'completed'
-                            ? 'bg-green-600 text-white'
-                            : 'bg-slate-800 text-slate-300'
+                        ? 'bg-green-600 text-white'
+                        : 'bg-slate-800 text-slate-300'
                         }`}
                     onClick={() => setFilter('completed')}
                 >
@@ -225,7 +226,7 @@ export default function PendingPage() {
                     ))}
                 </div>
             ) : filteredItems.length === 0 ? (
-                <div className="empty-state">
+                <div className="empty-state min-h-[50vh] flex flex-col items-center justify-center">
                     <div className="empty-state-icon">
                         <Check size={48} />
                     </div>
@@ -235,82 +236,133 @@ export default function PendingPage() {
                     <div className="text-slate-500 text-sm">{t('noData')}</div>
                 </div>
             ) : (
-                <div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                     {filteredItems.map(item => (
-                        <Card key={item.entry.id} className="mb-3 bg-slate-900/50 border-slate-800">
-                            <CardContent className="p-4">
-                                <div className="flex justify-between items-start mb-3">
-                                    <div>
-                                        <div className="font-semibold text-base flex items-center gap-2 text-white">
-                                            <UserCircle size={18} className="text-emerald-400" /> {item.entry.workers?.name}
+                        <Card
+                            key={item.entry.id}
+                            className="bg-slate-900/50 border-slate-800 hover:border-emerald-500/50 transition-all duration-300 group relative overflow-hidden h-full flex flex-col"
+                        >
+                            <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+
+                            <CardContent className="p-3 md:p-5 flex flex-col h-full relative z-10 box-border">
+                                {/* Header Section */}
+                                <div className="flex md:flex-col items-start md:items-center justify-between md:justify-center w-full mb-3 md:mb-4">
+                                    <div className="flex md:flex-col items-center gap-3 md:gap-4 flex-1 min-w-0 md:text-center md:w-full">
+                                        {/* Avatar */}
+                                        <div className="relative shrink-0">
+                                            <div className="h-10 w-10 md:h-20 md:w-20 rounded-full bg-slate-800 flex items-center justify-center text-emerald-400 shadow-md border border-slate-700 group-hover:border-emerald-500/30 transition-colors">
+                                                <UserCircle size={20} className="md:w-10 md:h-10" />
+                                            </div>
+                                            <div className="absolute -bottom-0.5 -right-0.5 md:bottom-1 md:right-1 h-3 w-3 md:h-5 md:w-5 bg-emerald-500 rounded-full border-2 border-slate-900" />
                                         </div>
-                                        <div className="text-sm text-slate-400 flex items-center gap-1 mt-1">
-                                            <Calendar size={14} /> {new Date(item.entry.entry_date).toLocaleDateString()}
-                                        </div>
-                                        {/* Status Badge */}
-                                        <div className="mt-2">
-                                            {item.entry.status === 'completed' ? (
-                                                <span className="status-badge status-badge-success">
-                                                    <CheckCircle2 size={14} /> {t('completed')}
-                                                </span>
-                                            ) : (
-                                                <span className="status-badge status-badge-warning">
-                                                    <Clock size={14} /> {t('inProgress')}
-                                                </span>
-                                            )}
+
+                                        {/* Worker Info */}
+                                        <div className="md:w-full min-w-0">
+                                            <div className="font-bold text-white text-base md:text-xl leading-tight truncate px-1">
+                                                {item.entry.workers?.name}
+                                            </div>
+                                            <div className="text-xs md:text-sm text-slate-400 flex items-center md:justify-center gap-1 mt-0.5 md:mt-1">
+                                                <Calendar size={12} className="md:w-3.5 md:h-3.5" /> {new Date(item.entry.entry_date).toLocaleDateString()}
+                                            </div>
                                         </div>
                                     </div>
-                                    <div className="text-xl font-bold text-emerald-400">
-                                        {item.entry.quantity}
+
+                                    {/* Quantity (Mobile: Right, Desktop: Below Name or Separate) */}
+                                    <div className="text-right md:hidden shrink-0 ml-2">
+                                        <div className="text-xl font-bold text-emerald-400 leading-none">
+                                            {item.entry.quantity}
+                                        </div>
+                                        <div className="text-[10px] text-slate-500 uppercase font-bold mt-0.5">Qty</div>
                                     </div>
                                 </div>
 
-                                <div className="mb-3">
-                                    <div className="text-sm text-slate-400 mb-1 flex items-center gap-1">
-                                        <Check size={14} /> Done: {item.completedTasks.map(t => t.name).join(', ') || 'None'}
+                                {/* Desktop Quantity & Status Section */}
+                                <div className="hidden md:flex flex-col items-center justify-center mb-4 w-full">
+                                    <div className="text-3xl font-bold text-emerald-400 leading-none mb-1">
+                                        {item.entry.quantity}
                                     </div>
+                                    <div className="text-xs text-slate-500 uppercase font-bold mb-3">Quantity</div>
+
+                                    {/* Status Badge Desktop */}
+                                    <div className="mb-2">
+                                        {item.entry.status === 'completed' ? (
+                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-sm font-medium">
+                                                <CheckCircle2 size={14} /> {t('completed')}
+                                            </span>
+                                        ) : (
+                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-sm font-medium">
+                                                <Clock size={14} /> {t('inProgress')}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Mobile Status & Tasks Block */}
+                                <div className="bg-slate-950/30 rounded-lg p-2.5 mb-3 border border-slate-800/30 w-full flex-grow">
+                                    <div className="flex flex-wrap gap-2 mb-2 md:justify-center">
+                                        {/* Status Badge (Mobile Only) */}
+                                        <div className="md:hidden">
+                                            {item.entry.status === 'completed' ? (
+                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-medium">
+                                                    <CheckCircle2 size={12} /> {t('completed')}
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs font-medium">
+                                                    <Clock size={12} /> {t('inProgress')}
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        {/* Task progress summary */}
+                                        {item.remainingTasks.length > 0 ? (
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-800 text-slate-400 border border-slate-700 text-xs md:text-sm">
+                                                <Clock size={12} /> {item.remainingTasks.length} remaining
+                                            </span>
+                                        ) : (
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-800 text-slate-400 border border-slate-700 text-xs md:text-sm">
+                                                <Check size={12} /> All tasks done
+                                            </span>
+                                        )}
+                                    </div>
+
                                     {item.remainingTasks.length > 0 && (
-                                        <>
-                                            <div className="text-sm font-semibold mb-1 text-amber-400 flex items-center gap-1">
-                                                <Clock size={14} /> {t('remainingTasks')}:
-                                            </div>
-                                            <div className="flex flex-wrap gap-1">
-                                                {item.remainingTasks.map(task => (
-                                                    <span key={task.id} className="status-badge status-badge-warning">
-                                                        {task.name}
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        </>
+                                        <div className="flex flex-wrap gap-1 md:justify-center">
+                                            {item.remainingTasks.map(task => (
+                                                <span key={task.id} className="text-[10px] md:text-xs bg-amber-500/10 text-amber-500/80 border border-amber-500/10 px-1.5 py-0.5 rounded">
+                                                    {task.name}
+                                                </span>
+                                            ))}
+                                        </div>
                                     )}
                                 </div>
 
                                 {/* Action Buttons */}
-                                <div className="grid grid-cols-2 gap-2">
+                                <div className="flex gap-2 w-full mt-auto">
                                     {/* Status Toggle Button */}
                                     {item.entry.status === 'in_progress' ? (
                                         <Button
-                                            className="big-action-btn bg-green-600 hover:bg-green-700"
+                                            className="flex-1 bg-emerald-600 hover:bg-emerald-700 h-9 md:h-10 text-xs md:text-sm"
                                             onClick={() => handleStatusChange(item.entry.id, 'completed')}
                                         >
-                                            <CheckCircle2 size={18} /> {t('markComplete')}
+                                            <CheckCircle2 size={16} className="mr-1.5" /> <span className="truncate">{t('markComplete')}</span>
                                         </Button>
                                     ) : (
                                         <Button
-                                            className="big-action-btn bg-amber-600 hover:bg-amber-700"
+                                            className="flex-1 bg-amber-600 hover:bg-amber-700 h-9 md:h-10 text-xs md:text-sm"
                                             onClick={() => handleStatusChange(item.entry.id, 'in_progress')}
                                         >
-                                            <Clock size={18} /> {t('markInProgress')}
+                                            <Clock size={16} className="mr-1.5" /> <span className="truncate">{t('markInProgress')}</span>
                                         </Button>
                                     )}
 
                                     {/* Reassign Button - only show if remaining tasks */}
                                     {item.remainingTasks.length > 0 && (
                                         <Button
-                                            className="big-action-btn bg-blue-600 hover:bg-blue-700"
+                                            className="flex-shrink-0 w-9 px-0 md:w-10 bg-blue-600 hover:bg-blue-700 h-9 md:h-10"
                                             onClick={() => openReassign(item)}
+                                            title={t('reassign')}
                                         >
-                                            <RefreshCw size={18} /> {t('reassign')}
+                                            <RefreshCw size={16} className="md:w-[18px] md:h-[18px]" />
                                         </Button>
                                     )}
                                 </div>
@@ -321,82 +373,85 @@ export default function PendingPage() {
             )}
 
             {/* Reassign Modal */}
-            {showReassign && (
-                <div className="modal-overlay">
-                    <div className="modal-content bg-slate-900 border border-slate-800">
-                        <h2 className="modal-title text-white">
-                            <RefreshCw size={20} className="text-blue-400" /> {t('reassign')}
-                        </h2>
+            <Modal
+                isOpen={!!showReassign}
+                onClose={() => setShowReassign(null)}
+                title={
+                    <>
+                        <RefreshCw size={20} className="text-blue-400" /> {t('reassign')}
+                    </>
+                }
+            >
+                <div className="space-y-4">
+                    <div className="form-group">
+                        <label className="form-label">
+                            <UserCircle size={18} /> {t('reassignTo')}
+                        </label>
+                        <select
+                            className="large-select bg-slate-800 border-slate-700"
+                            value={reassignWorkerId}
+                            onChange={(e) => setReassignWorkerId(e.target.value)}
+                        >
+                            <option value="">{t('selectWorker')}...</option>
+                            {/* Filter out current worker effectively */}
+                            {workers.filter(w => showReassign && w.id !== showReassign.entry.worker_id).map(w => (
+                                <option key={w.id} value={w.id}>{w.name}</option>
+                            ))}
+                        </select>
+                    </div>
 
-                        <div className="form-group">
-                            <label className="form-label">
-                                <UserCircle size={18} /> {t('reassignTo')}
-                            </label>
-                            <select
-                                className="large-select bg-slate-800 border-slate-700"
-                                value={reassignWorkerId}
-                                onChange={(e) => setReassignWorkerId(e.target.value)}
-                            >
-                                <option value="">{t('selectWorker')}...</option>
-                                {workers.filter(w => w.id !== showReassign.entry.worker_id).map(w => (
-                                    <option key={w.id} value={w.id}>{w.name}</option>
-                                ))}
-                            </select>
-                        </div>
+                    <div className="form-group">
+                        <label className="form-label">
+                            <Package size={18} /> {t('quantity')}
+                        </label>
+                        <Input
+                            type="number"
+                            className="large-input bg-slate-800 border-slate-700"
+                            value={reassignQuantity}
+                            onChange={(e) => setReassignQuantity(e.target.value)}
+                            min="1"
+                        />
+                    </div>
 
-                        <div className="form-group">
-                            <label className="form-label">
-                                <Package size={18} /> {t('quantity')}
-                            </label>
-                            <Input
-                                type="number"
-                                className="large-input bg-slate-800 border-slate-700"
-                                value={reassignQuantity}
-                                onChange={(e) => setReassignQuantity(e.target.value)}
-                                min="1"
-                            />
-                        </div>
-
-                        <div className="form-group">
-                            <label className="form-label">
-                                <CheckSquare size={18} /> {t('tasksCompleted')}
-                            </label>
-                            <div className="checkbox-grid">
-                                {showReassign.remainingTasks.map(task => (
-                                    <div
-                                        key={task.id}
-                                        className={`checkbox-item ${reassignTasks.includes(task.id) ? 'selected' : ''}`}
-                                        onClick={() => toggleReassignTask(task.id)}
-                                    >
-                                        <input
-                                            type="checkbox"
-                                            checked={reassignTasks.includes(task.id)}
-                                            onChange={() => { }}
-                                        />
-                                        <span>{task.name}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="action-grid">
-                            <Button
-                                className="big-action-btn bg-emerald-600 hover:bg-emerald-700"
-                                onClick={handleReassign}
-                            >
-                                <Save size={18} /> {t('save')}
-                            </Button>
-                            <Button
-                                variant="secondary"
-                                className="big-action-btn bg-slate-700 hover:bg-slate-600"
-                                onClick={() => setShowReassign(null)}
-                            >
-                                <X size={18} /> {t('cancel')}
-                            </Button>
+                    <div className="form-group">
+                        <label className="form-label">
+                            <CheckSquare size={18} /> {t('tasksCompleted')}
+                        </label>
+                        <div className="checkbox-grid">
+                            {showReassign?.remainingTasks.map(task => (
+                                <div
+                                    key={task.id}
+                                    className={`checkbox-item ${reassignTasks.includes(task.id) ? 'selected' : ''}`}
+                                    onClick={() => toggleReassignTask(task.id)}
+                                >
+                                    <input
+                                        type="checkbox"
+                                        checked={reassignTasks.includes(task.id)}
+                                        onChange={() => { }}
+                                    />
+                                    <span>{task.name}</span>
+                                </div>
+                            ))}
                         </div>
                     </div>
+
+                    <div className="action-grid">
+                        <Button
+                            className="big-action-btn bg-emerald-600 hover:bg-emerald-700"
+                            onClick={handleReassign}
+                        >
+                            <Save size={18} /> {t('save')}
+                        </Button>
+                        <Button
+                            variant="secondary"
+                            className="big-action-btn bg-slate-700 hover:bg-slate-600"
+                            onClick={() => setShowReassign(null)}
+                        >
+                            <X size={18} /> {t('cancel')}
+                        </Button>
+                    </div>
                 </div>
-            )}
+            </Modal>
         </div>
     )
 }

@@ -4,13 +4,25 @@
  */
 
 import { NextResponse } from 'next/server'
-import { workersService, CreateWorkerDto, UpdateWorkerDto } from '@/services'
+import { workersService, CreateWorkerDto, UpdateWorkerDto, paymentsService } from '@/services'
 
 export class WorkersController {
     static async getAll() {
         try {
-            const workers = await workersService.findAll()
-            return NextResponse.json(workers)
+            const [workers, summary] = await Promise.all([
+                workersService.findAll(),
+                paymentsService.calculateSummary()
+            ])
+
+            // Map pending amount to each worker
+            const workersWithAmount = workers.map(worker => {
+                const payment = summary.payments.find(p => p.worker_id === worker.id)
+                // Total is completed + upcoming (in_progress)
+                const totalPending = (payment?.total || 0) + (payment?.upcoming_total || 0)
+                return { ...worker, pendingAmount: totalPending }
+            })
+
+            return NextResponse.json(workersWithAmount)
         } catch (error) {
             return this.handleError(error, 'Failed to fetch workers')
         }

@@ -25,6 +25,9 @@ export interface PaymentDetail {
 
 export interface WorkerPaymentDetails extends WorkerPayment {
     details: PaymentDetail[]
+    upcoming_total: number
+    upcoming_entries: number
+    upcoming_details: PaymentDetail[]
 }
 
 export interface PaymentSummary {
@@ -46,76 +49,99 @@ interface WorkEntryWithTasks {
 
 class PaymentsService {
     async calculateSummary(): Promise<PaymentSummary> {
-        // Fetch all data
-        const [entries, tasks, workers] = await Promise.all([
-            this.getCompletedEntries(), // Only completed entries
-            tasksService.findAll(true),
-            workersService.findAll()
-        ])
+        try {
+            // Fetch all data
+            const [entries, tasks, workers] = await Promise.all([
+                this.getAllEntries(), // Fetch all entries (completed and in_progress)
+                tasksService.findAll(true),
+                workersService.findAll()
+            ])
 
-        // Calculate payment per worker
-        const workerPayments: Record<string, WorkerPaymentDetails> = {}
+            // Calculate payment per worker
+            const workerPayments: Record<string, WorkerPaymentDetails> = {}
 
-        entries.forEach(entry => {
-            const workerId = entry.worker_id
-            const workerName = entry.workers?.name || 'Unknown'
-
-            if (!workerPayments[workerId]) {
-                workerPayments[workerId] = {
-                    worker_id: workerId,
-                    worker_name: workerName,
+            // Initialize all workers
+            workers.forEach(worker => {
+                workerPayments[worker.id] = {
+                    worker_id: worker.id,
+                    worker_name: worker.name,
                     total: 0,
                     entries: 0,
                     paid: false,
-                    details: []
-                }
-            }
-
-            // Calculate entry total
-            let entryTotal = 0
-            const taskNames: string[] = []
-            entry.work_entry_tasks?.forEach(taskLink => {
-                const task = tasks.find((t: Task) => t.id === taskLink.task_id)
-                if (task) {
-                    entryTotal += entry.quantity * task.rate
-                    taskNames.push(task.name)
+                    details: [],
+                    upcoming_total: 0,
+                    upcoming_entries: 0,
+                    upcoming_details: []
                 }
             })
 
-            workerPayments[workerId].total += entryTotal
-            workerPayments[workerId].entries += 1
-            workerPayments[workerId].details.push({
-                entry_id: entry.id,
-                quantity: entry.quantity,
-                entry_date: entry.entry_date,
-                tasks: taskNames,
-                amount: entryTotal
+            entries.forEach(entry => {
+                const workerId = entry.worker_id
+
+                // Skip if worker deleted
+                if (!workerPayments[workerId]) return
+
+                // Calculate entry total
+                let entryTotal = 0
+                const taskNames: string[] = []
+
+                if (entry.work_entry_tasks && Array.isArray(entry.work_entry_tasks)) {
+                    entry.work_entry_tasks.forEach(taskLink => {
+                        const task = tasks.find((t: Task) => t.id === taskLink.task_id)
+                        if (task) {
+                            entryTotal += entry.quantity * task.rate
+                            taskNames.push(task.name)
+                        }
+                    })
+                }
+
+                const detail: PaymentDetail = {
+                    entry_id: entry.id,
+                    quantity: entry.quantity,
+                    entry_date: entry.entry_date,
+                    tasks: taskNames,
+                    amount: entryTotal
+                }
+
+                if (entry.status === 'completed') {
+                    workerPayments[workerId].total += entryTotal
+                    workerPayments[workerId].entries += 1
+                    workerPayments[workerId].details.push(detail)
+                } else if (entry.status === 'in_progress') {
+                    workerPayments[workerId].upcoming_total += entryTotal
+                    workerPayments[workerId].upcoming_entries += 1
+                    workerPayments[workerId].upcoming_details.push(detail)
+                }
             })
-        })
 
-        // Convert to array
-        const payments = Object.values(workerPayments)
-        const grandTotal = payments.reduce((sum, p) => sum + p.total, 0)
+            // Filter out workers with no activity
+            const payments = Object.values(workerPayments).filter(p => p.entries > 0 || p.upcoming_entries > 0)
+            const grandTotal = payments.reduce((sum, p) => sum + p.total, 0)
 
-        return { payments, grandTotal, workers }
+            return { payments, grandTotal, workers }
+        } catch (error) {
+            console.error('Error in calculateSummary:', error)
+            throw error
+        }
     }
 
     async markAsPaid(workerId: string): Promise<void> {
         // Mark all completed entries for this worker as paid
+        // Using 'status' column since 'paid' column does not exist
         const { error } = await supabase
             .from('work_entries')
-            .update({ paid: true })
+            .update({ status: 'paid' })
             .eq('worker_id', workerId)
             .eq('status', 'completed')
 
         if (error) throw error
     }
 
-    private async getCompletedEntries(): Promise<WorkEntryWithTasks[]> {
+    private async getAllEntries(): Promise<WorkEntryWithTasks[]> {
         const { data, error } = await supabase
             .from('work_entries')
             .select('*, workers(id, name), work_entry_tasks(task_id)')
-            .eq('status', 'completed')
+            .neq('status', 'paid') // Exclude already paid entries
             .order('entry_date', { ascending: false })
 
         if (error) throw error

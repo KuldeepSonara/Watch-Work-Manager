@@ -28,8 +28,11 @@ export const translations = {
 
         // Task rates
         taskName: 'Task Name',
+        addTask: 'Add Task',
         ratePerItem: 'Rate per Item (₹)',
         taskNumber: 'Task #',
+        taskRates: 'Task Rates',
+        taskList: 'Task List',
 
         // Fixed tasks
         task1: 'Crown fitting',
@@ -41,6 +44,7 @@ export const translations = {
 
         // Work entry
         selectWorker: 'Select Worker',
+        addEntry: 'Add Work Entry',
         quantity: 'Quantity',
         tasksCompleted: 'Tasks Completed',
         entryDate: 'Entry Date',
@@ -104,8 +108,11 @@ export const translations = {
 
         // Task rates
         taskName: 'કામનું નામ',
+        addTask: 'કામ ઉમેરો',
         ratePerItem: 'પ્રતિ આઇટમ દર (₹)',
         taskNumber: 'કામ #',
+        taskRates: 'કામના દર',
+        taskList: 'કામની યાદી',
 
         // Fixed tasks
         task1: 'ક્રાઉન ફિટિંગ',
@@ -117,6 +124,7 @@ export const translations = {
 
         // Work entry
         selectWorker: 'કામદાર પસંદ કરો',
+        addEntry: 'કામની એન્ટ્રી ઉમેરો',
         quantity: 'જથ્થો',
         tasksCompleted: 'પૂર્ણ થયેલ કામ',
         entryDate: 'તારીખ',

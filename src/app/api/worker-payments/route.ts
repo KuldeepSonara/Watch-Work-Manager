@@ -1,7 +1,7 @@
 /**
  * Payments Route
- * GET /api/payments - Calculate payment summary
- * POST /api/payments - Mark worker as paid
+ * GET /api/worker-payments - Calculate payment summary
+ * POST /api/worker-payments - Mark worker as paid
  */
 
 import { PaymentsController } from '@/controllers'

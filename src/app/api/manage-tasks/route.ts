@@ -1,7 +1,7 @@
 /**
  * Tasks Route
- * GET /api/tasks - List all active tasks
- * POST /api/tasks - Create a new task
+ * GET /api/manage-tasks - List all active tasks
+ * POST /api/manage-tasks - Create a new task
  */
 
 import { TasksController } from '@/controllers'

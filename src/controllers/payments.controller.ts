@@ -33,6 +33,7 @@ export class PaymentsController {
 
     private static handleError(error: unknown, defaultMessage: string) {
         const message = error instanceof Error ? error.message : defaultMessage
+        console.error(defaultMessage, error)
         return NextResponse.json({ error: message }, { status: 500 })
     }
 }

@@ -42,8 +42,8 @@ export default function Navigation() {
                                         key={item.href}
                                         href={item.href}
                                         className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 ${isActive
-                                                ? 'text-emerald-400 bg-emerald-400/10'
-                                                : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                                            ? 'text-emerald-400 bg-emerald-400/10'
+                                            : 'text-slate-300 hover:text-white hover:bg-slate-800'
                                             }`}
                                     >
                                         {item.icon}
@@ -66,37 +66,37 @@ export default function Navigation() {
             </nav>
 
             {/* Mobile Bottom Navigation - Visible only on mobile */}
+
+            {/* Floating Language Toggle for Mobile */}
+            <button
+                className="md:hidden fixed bottom-24 left-4 w-12 h-12 rounded-full bg-slate-800 border border-slate-700 shadow-lg text-white flex items-center justify-center z-40 active:scale-95 transition-transform"
+                onClick={() => setLanguage(language === 'en' ? 'gu' : 'en')}
+            >
+                <span className="font-bold text-sm">
+                    {language === 'en' ? 'ગુ' : 'EN'}
+                </span>
+            </button>
+
             <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-sm border-t border-slate-800 z-50 safe-area-bottom">
                 <div className="flex justify-around items-center h-16 px-1">
-                    {navItems.slice(0, 5).map(item => {
+                    {navItems.map(item => {
                         const isActive = pathname === item.href
                         return (
                             <Link
                                 key={item.href}
                                 href={item.href}
-                                className={`flex flex-col items-center justify-center py-2 px-2 min-w-[60px] rounded-xl transition-all duration-200 ${isActive
-                                        ? 'text-emerald-400 bg-emerald-400/10'
-                                        : 'text-slate-400 active:text-white active:bg-slate-800'
+                                className={`flex flex-col items-center justify-center py-2 px-1 min-w-[50px] rounded-xl transition-all duration-200 ${isActive
+                                    ? 'text-emerald-400 bg-emerald-400/10'
+                                    : 'text-slate-400 active:text-white active:bg-slate-800'
                                     }`}
                             >
                                 <div className={`${isActive ? 'scale-110' : ''} transition-transform`}>
                                     {item.icon}
                                 </div>
-                                <span className="text-[10px] mt-1 font-medium truncate">{t(item.key)}</span>
+                                <span className="text-[10px] mt-1 font-medium truncate max-w-[60px]">{t(item.key)}</span>
                             </Link>
                         )
                     })}
-
-                    {/* Language Toggle for Mobile */}
-                    <button
-                        className="flex flex-col items-center justify-center py-2 px-2 min-w-[60px] rounded-xl text-slate-400 active:text-white active:bg-slate-800 transition-all"
-                        onClick={() => setLanguage(language === 'en' ? 'gu' : 'en')}
-                    >
-                        <Globe size={20} />
-                        <span className="text-[10px] mt-1 font-medium">
-                            {language === 'en' ? 'ગુ' : 'EN'}
-                        </span>
-                    </button>
                 </div>
             </nav>
         </>

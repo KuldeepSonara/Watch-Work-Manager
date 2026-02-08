@@ -1,7 +1,7 @@
 /**
  * Task by ID Route
- * PUT /api/tasks/[id] - Update a task
- * DELETE /api/tasks/[id] - Delete (soft) a task
+ * PUT /api/manage-tasks/[id] - Update a task
+ * DELETE /api/manage-tasks/[id] - Delete (soft) a task
  */
 
 import { TasksController } from '@/controllers'

@@ -9,6 +9,7 @@ export interface Worker {
     id: string
     name: string
     created_at?: string
+    pendingAmount?: number
 }
 
 export interface CreateWorkerDto {

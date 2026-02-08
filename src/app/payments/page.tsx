@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 
 interface TaskRate {
     task_number: number
+    task_name: string
     rate: number
 }
 
@@ -33,6 +34,7 @@ interface WorkerPayment {
 export default function PaymentsPage() {
     const { t } = useLanguage()
     const [payments, setPayments] = useState<WorkerPayment[]>([])
+    const [tasks, setTasks] = useState<TaskRate[]>([])
     const [taskRates, setTaskRates] = useState<{ [key: number]: number }>({})
     const [loading, setLoading] = useState(true)
     const [expandedWorker, setExpandedWorker] = useState<string | null>(null)
@@ -45,16 +47,21 @@ export default function PaymentsPage() {
         setLoading(true)
 
         const [ratesRes, entriesRes] = await Promise.all([
-            supabase.from('task_rates').select('task_number, rate'),
+            supabase.from('task_rates').select('task_number, task_name, rate').order('task_number'),
             supabase.from('work_entries').select('*, workers(id, name)').order('entry_date', { ascending: false })
         ])
 
         // Build rates map
         const ratesMap: { [key: number]: number } = {}
+        const tasksList: TaskRate[] = []
         if (ratesRes.data) {
-            ratesRes.data.forEach(r => { ratesMap[r.task_number] = r.rate })
+            ratesRes.data.forEach(r => {
+                ratesMap[r.task_number] = r.rate
+                tasksList.push(r)
+            })
         }
         setTaskRates(ratesMap)
+        setTasks(tasksList)
 
         // Calculate payments per worker
         if (entriesRes.data) {
@@ -76,8 +83,8 @@ export default function PaymentsPage() {
                 }
 
                 // Calculate amount for this entry
-                const tasks = entry.tasks_completed.split(',').map(Number).filter((n: number) => !isNaN(n))
-                const taskTotal = tasks.reduce((sum: number, taskNum: number) => sum + (ratesMap[taskNum] || 0), 0)
+                const taskNums = entry.tasks_completed.split(',').map(Number).filter((n: number) => !isNaN(n))
+                const taskTotal = taskNums.reduce((sum: number, taskNum: number) => sum + (ratesMap[taskNum] || 0), 0)
                 const entryAmount = entry.quantity * taskTotal
 
                 workerMap[workerId].totalAmount += entryAmount
@@ -97,9 +104,9 @@ export default function PaymentsPage() {
         setLoading(false)
     }
 
-    function getTaskLabel(taskNum: number): string {
-        const key = `task${taskNum}` as keyof typeof t
-        return t(key)
+    function getTaskName(taskNum: number): string {
+        const task = tasks.find(t => t.task_number === taskNum)
+        return task ? task.task_name : `Task ${taskNum}`
     }
 
     const grandTotal = payments.reduce((sum, p) => sum + p.totalAmount, 0)
@@ -183,8 +190,10 @@ export default function PaymentsPage() {
                                                         <td>{entry.quantity}</td>
                                                         <td>
                                                             <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
-                                                                {entry.tasks.split(',').map(t => (
-                                                                    <span key={t} className="badge">{t}</span>
+                                                                {entry.tasks.split(',').map(taskNum => (
+                                                                    <span key={taskNum} className="badge" title={getTaskName(parseInt(taskNum))}>
+                                                                        {taskNum}
+                                                                    </span>
                                                                 ))}
                                                             </div>
                                                         </td>
@@ -206,31 +215,33 @@ export default function PaymentsPage() {
             )}
 
             {/* Task Rates Reference */}
-            <div style={{ marginTop: '2rem' }}>
-                <h3>📊 {t('rates')}</h3>
-                <div className="card">
-                    <div className="table-container">
-                        <table className="table">
-                            <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>{t('taskName')}</th>
-                                    <th style={{ textAlign: 'right' }}>{t('ratePerItem')}</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {[1, 2, 3, 4, 5, 6].map(taskNum => (
-                                    <tr key={taskNum}>
-                                        <td>{taskNum}</td>
-                                        <td>{getTaskLabel(taskNum)}</td>
-                                        <td style={{ textAlign: 'right' }}>₹{(taskRates[taskNum] || 0).toFixed(2)}</td>
+            {tasks.length > 0 && (
+                <div style={{ marginTop: '2rem' }}>
+                    <h3>📊 {t('rates')}</h3>
+                    <div className="card">
+                        <div className="table-container">
+                            <table className="table">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>{t('taskName')}</th>
+                                        <th style={{ textAlign: 'right' }}>{t('ratePerItem')}</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    {tasks.map(task => (
+                                        <tr key={task.task_number}>
+                                            <td>{task.task_number}</td>
+                                            <td>{task.task_name}</td>
+                                            <td style={{ textAlign: 'right' }}>₹{task.rate.toFixed(2)}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
         </div>
     )
 }

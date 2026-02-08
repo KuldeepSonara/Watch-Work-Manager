@@ -10,6 +10,13 @@ interface Worker {
     name: string
 }
 
+interface TaskRate {
+    id: string
+    task_number: number
+    task_name: string
+    rate: number
+}
+
 interface WorkEntry {
     id: string
     worker_id: string
@@ -26,6 +33,7 @@ function EntryContent() {
     const editId = searchParams.get('edit')
 
     const [workers, setWorkers] = useState<Worker[]>([])
+    const [tasks, setTasks] = useState<TaskRate[]>([])
     const [entries, setEntries] = useState<WorkEntry[]>([])
     const [loading, setLoading] = useState(true)
     const [message, setMessage] = useState('')
@@ -55,12 +63,14 @@ function EntryContent() {
     async function fetchData() {
         setLoading(true)
 
-        const [workersRes, entriesRes] = await Promise.all([
+        const [workersRes, tasksRes, entriesRes] = await Promise.all([
             supabase.from('workers').select('*').order('name'),
+            supabase.from('task_rates').select('*').order('task_number'),
             supabase.from('work_entries').select('*, workers(name)').order('entry_date', { ascending: false }).limit(50)
         ])
 
         if (workersRes.data) setWorkers(workersRes.data)
+        if (tasksRes.data) setTasks(tasksRes.data)
         if (entriesRes.data) setEntries(entriesRes.data)
 
         setLoading(false)
@@ -70,7 +80,7 @@ function EntryContent() {
         if (selectedTasks.includes(taskNum)) {
             setSelectedTasks(selectedTasks.filter(t => t !== taskNum))
         } else {
-            setSelectedTasks([...selectedTasks, taskNum].sort())
+            setSelectedTasks([...selectedTasks, taskNum].sort((a, b) => a - b))
         }
     }
 
@@ -142,9 +152,9 @@ function EntryContent() {
         setTimeout(() => setMessage(''), 3000)
     }
 
-    function getTaskLabel(taskNum: number): string {
-        const key = `task${taskNum}` as keyof typeof t
-        return t(key)
+    function getTaskName(taskNum: number): string {
+        const task = tasks.find(t => t.task_number === taskNum)
+        return task ? task.task_name : `Task ${taskNum}`
     }
 
     return (
@@ -158,6 +168,12 @@ function EntryContent() {
                     {message}
                 </div>
             )}
+
+            {tasks.length === 0 && !loading ? (
+                <div className="alert alert-error">
+                    ⚠️ No tasks found! Please add tasks in Task Rates first.
+                </div>
+            ) : null}
 
             <div className="card">
                 <form onSubmit={handleSubmit}>
@@ -203,21 +219,21 @@ function EntryContent() {
                     <div className="form-group">
                         <label className="form-label">{t('tasksCompleted')}</label>
                         <div className="checkbox-group">
-                            {[1, 2, 3, 4, 5, 6].map(taskNum => (
-                                <label key={taskNum} className="checkbox-item">
+                            {tasks.map(task => (
+                                <label key={task.id} className="checkbox-item">
                                     <input
                                         type="checkbox"
-                                        checked={selectedTasks.includes(taskNum)}
-                                        onChange={() => toggleTask(taskNum)}
+                                        checked={selectedTasks.includes(task.task_number)}
+                                        onChange={() => toggleTask(task.task_number)}
                                     />
-                                    <span>{taskNum}. {getTaskLabel(taskNum)}</span>
+                                    <span>{task.task_number}. {task.task_name}</span>
                                 </label>
                             ))}
                         </div>
                     </div>
 
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button type="submit" className="btn btn-success btn-block">
+                        <button type="submit" className="btn btn-success btn-block" disabled={tasks.length === 0}>
                             {editId ? t('editEntry') : t('saveEntry')} ✓
                         </button>
                         {editId && (
@@ -260,8 +276,10 @@ function EntryContent() {
                                         {entry.quantity} items
                                     </div>
                                     <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
-                                        {entry.tasks_completed.split(',').map(t => (
-                                            <span key={t} className="badge">{t}</span>
+                                        {entry.tasks_completed.split(',').map(taskNum => (
+                                            <span key={taskNum} className="badge" title={getTaskName(parseInt(taskNum))}>
+                                                {taskNum}
+                                            </span>
                                         ))}
                                     </div>
                                 </div>

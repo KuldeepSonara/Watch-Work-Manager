@@ -9,6 +9,13 @@ interface Worker {
     name: string
 }
 
+interface TaskRate {
+    id: string
+    task_number: number
+    task_name: string
+    rate: number
+}
+
 interface WorkEntry {
     id: string
     worker_id: string
@@ -23,11 +30,10 @@ interface PendingItem {
     remainingTasks: number[]
 }
 
-const ALL_TASKS = [1, 2, 3, 4, 5, 6]
-
 export default function PendingPage() {
     const { t } = useLanguage()
     const [workers, setWorkers] = useState<Worker[]>([])
+    const [tasks, setTasks] = useState<TaskRate[]>([])
     const [pendingItems, setPendingItems] = useState<PendingItem[]>([])
     const [loading, setLoading] = useState(true)
     const [message, setMessage] = useState('')
@@ -45,19 +51,24 @@ export default function PendingPage() {
     async function fetchData() {
         setLoading(true)
 
-        const [workersRes, entriesRes] = await Promise.all([
+        const [workersRes, tasksRes, entriesRes] = await Promise.all([
             supabase.from('workers').select('*').order('name'),
+            supabase.from('task_rates').select('*').order('task_number'),
             supabase.from('work_entries').select('*, workers(name)').order('entry_date', { ascending: false })
         ])
 
         if (workersRes.data) setWorkers(workersRes.data)
 
-        if (entriesRes.data) {
+        const allTasks = tasksRes.data || []
+        setTasks(allTasks)
+        const allTaskNumbers = allTasks.map(t => t.task_number)
+
+        if (entriesRes.data && allTasks.length > 0) {
             // Find entries with incomplete tasks
             const pending: PendingItem[] = []
             entriesRes.data.forEach(entry => {
                 const completedTasks = entry.tasks_completed.split(',').map(Number).filter((n: number) => !isNaN(n))
-                const remainingTasks = ALL_TASKS.filter(t => !completedTasks.includes(t))
+                const remainingTasks = allTaskNumbers.filter(t => !completedTasks.includes(t))
 
                 if (remainingTasks.length > 0) {
                     pending.push({ entry, remainingTasks })
@@ -69,9 +80,9 @@ export default function PendingPage() {
         setLoading(false)
     }
 
-    function getTaskLabel(taskNum: number): string {
-        const key = `task${taskNum}` as keyof typeof t
-        return t(key)
+    function getTaskName(taskNum: number): string {
+        const task = tasks.find(t => t.task_number === taskNum)
+        return task ? task.task_name : `Task ${taskNum}`
     }
 
     function openReassign(item: PendingItem) {
@@ -85,7 +96,7 @@ export default function PendingPage() {
         if (reassignTasks.includes(taskNum)) {
             setReassignTasks(reassignTasks.filter(t => t !== taskNum))
         } else {
-            setReassignTasks([...reassignTasks, taskNum].sort())
+            setReassignTasks([...reassignTasks, taskNum].sort((a, b) => a - b))
         }
     }
 
@@ -165,7 +176,7 @@ export default function PendingPage() {
                                 <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
                                     {item.remainingTasks.map(taskNum => (
                                         <span key={taskNum} className="badge badge-warning">
-                                            {taskNum}. {getTaskLabel(taskNum)}
+                                            {taskNum}. {getTaskName(taskNum)}
                                         </span>
                                     ))}
                                 </div>
@@ -236,7 +247,7 @@ export default function PendingPage() {
                                             checked={reassignTasks.includes(taskNum)}
                                             onChange={() => toggleReassignTask(taskNum)}
                                         />
-                                        <span>{taskNum}. {getTaskLabel(taskNum)}</span>
+                                        <span>{taskNum}. {getTaskName(taskNum)}</span>
                                     </label>
                                 ))}
                             </div>

@@ -3,6 +3,9 @@
 import { useState, useEffect } from 'react'
 import { useLanguage } from '@/lib/LanguageContext'
 import { supabase } from '@/lib/supabase'
+import { Card, CardContent } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Wallet, UserCircle, Calendar, ChevronDown, ChevronUp, Coins, IndianRupee } from 'lucide-react'
 
 interface Task {
     id: string
@@ -56,11 +59,9 @@ export default function PaymentsPage() {
         const tasksList = tasksRes.data || []
         setTasks(tasksList)
 
-        // Build task lookup map
         const taskMap: { [key: string]: Task } = {}
         tasksList.forEach(t => { taskMap[t.id] = t })
 
-        // Calculate payments per worker
         if (entriesRes.data) {
             const workerMap: { [key: string]: WorkerPayment } = {}
 
@@ -79,7 +80,6 @@ export default function PaymentsPage() {
                     }
                 }
 
-                // Calculate amount for this entry
                 const entryTasks = entry.work_entry_tasks || []
                 let taskTotal = 0
                 const taskNames: string[] = []
@@ -103,7 +103,6 @@ export default function PaymentsPage() {
                 })
             })
 
-            // Sort by total amount descending
             const paymentList = Object.values(workerMap).sort((a, b) => b.totalAmount - a.totalAmount)
             setPayments(paymentList)
         }
@@ -115,133 +114,145 @@ export default function PaymentsPage() {
 
     return (
         <div>
-            <div className="header">
-                <h1>💵 {t('payments')}</h1>
+            {/* Page Header */}
+            <div className="page-header">
+                <h1>
+                    <Wallet className="icon" size={28} />
+                    {t('payments')}
+                </h1>
             </div>
 
             {/* Grand Total */}
-            <div className="card" style={{ background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)', color: 'white' }}>
-                <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.875rem', textTransform: 'uppercase', opacity: 0.9 }}>
-                        {t('totalAmount')}
-                    </div>
-                    <div style={{ fontSize: '2.5rem', fontWeight: 700 }}>
-                        ₹{grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                    </div>
+            <div className="total-card">
+                <div className="total-label">{t('totalAmount')}</div>
+                <div className="total-amount">
+                    ₹{grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                 </div>
             </div>
 
-            <h2>{t('workerPayments')}</h2>
+            <h2 className="text-base font-semibold mb-3 flex items-center gap-2 text-white">
+                <UserCircle size={18} /> {t('workerPayments')}
+            </h2>
 
             {loading ? (
-                <div className="text-center">{t('loading')}</div>
+                <div>
+                    {[1, 2, 3].map(i => (
+                        <Card key={i} className="mb-2 bg-slate-900/50 border-slate-800">
+                            <CardContent className="p-4 flex justify-between items-center">
+                                <div>
+                                    <Skeleton className="h-5 w-32 mb-2 bg-slate-800" />
+                                    <Skeleton className="h-4 w-20 bg-slate-800" />
+                                </div>
+                                <Skeleton className="h-8 w-24 bg-slate-800" />
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
             ) : payments.length === 0 ? (
                 <div className="empty-state">
-                    <div className="empty-state-icon">💵</div>
-                    <div>{t('noData')}</div>
+                    <div className="empty-state-icon">
+                        <Wallet size={48} />
+                    </div>
+                    <div className="empty-state-text">{t('noData')}</div>
                 </div>
             ) : (
                 <div>
                     {payments.map(worker => (
-                        <div key={worker.workerId} className="card">
-                            <div
-                                style={{
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center',
-                                    cursor: 'pointer'
-                                }}
-                                onClick={() => setExpandedWorker(
-                                    expandedWorker === worker.workerId ? null : worker.workerId
-                                )}
-                            >
-                                <div>
-                                    <div style={{ fontWeight: 600, fontSize: '1.125rem' }}>
-                                        👷 {worker.workerName}
+                        <Card key={worker.workerId} className="mb-2 bg-slate-900/50 border-slate-800">
+                            <CardContent className="p-4">
+                                <div
+                                    className="flex justify-between items-center cursor-pointer"
+                                    onClick={() => setExpandedWorker(
+                                        expandedWorker === worker.workerId ? null : worker.workerId
+                                    )}
+                                >
+                                    <div>
+                                        <div className="font-semibold text-base flex items-center gap-2 text-white">
+                                            <UserCircle size={18} className="text-emerald-400" /> {worker.workerName}
+                                        </div>
+                                        <div className="text-sm text-slate-400">
+                                            {worker.entries.length} entries
+                                        </div>
                                     </div>
-                                    <div style={{ fontSize: '0.875rem', color: '#64748b' }}>
-                                        {worker.entries.length} entries
-                                    </div>
-                                </div>
-                                <div style={{ textAlign: 'right' }}>
-                                    <div className="amount amount-large">
-                                        ₹{worker.totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                                    </div>
-                                    <div style={{ fontSize: '1.25rem' }}>
-                                        {expandedWorker === worker.workerId ? '▲' : '▼'}
+                                    <div className="text-right flex items-center gap-2">
+                                        <div className="amount-display">
+                                            ₹{worker.totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                        </div>
+                                        {expandedWorker === worker.workerId
+                                            ? <ChevronUp size={20} className="text-slate-400" />
+                                            : <ChevronDown size={20} className="text-slate-400" />
+                                        }
                                     </div>
                                 </div>
-                            </div>
 
-                            {expandedWorker === worker.workerId && (
-                                <div style={{ marginTop: '1rem', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
-                                    <div className="table-container">
-                                        <table className="table">
+                                {expandedWorker === worker.workerId && (
+                                    <div className="mt-3 pt-3 border-t border-slate-700">
+                                        <table className="w-full text-sm">
                                             <thead>
-                                                <tr>
-                                                    <th>📅 Date</th>
-                                                    <th>Qty</th>
-                                                    <th>Tasks</th>
-                                                    <th style={{ textAlign: 'right' }}>{t('amount')}</th>
+                                                <tr className="text-left text-slate-400">
+                                                    <th className="pb-2"><Calendar size={12} className="inline" /></th>
+                                                    <th className="pb-2">Qty</th>
+                                                    <th className="pb-2">Tasks</th>
+                                                    <th className="pb-2 text-right"><IndianRupee size={12} className="inline" /></th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {worker.entries.map((entry, idx) => (
-                                                    <tr key={idx}>
-                                                        <td>{new Date(entry.date).toLocaleDateString()}</td>
-                                                        <td>{entry.quantity}</td>
-                                                        <td>
-                                                            <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
+                                                    <tr key={idx} className="border-t border-slate-800">
+                                                        <td className="py-2 text-slate-300">{new Date(entry.date).toLocaleDateString()}</td>
+                                                        <td className="py-2 text-slate-300">{entry.quantity}</td>
+                                                        <td className="py-2">
+                                                            <div className="flex flex-wrap gap-1">
                                                                 {entry.taskNames.map((name, i) => (
-                                                                    <span key={i} className="badge">
-                                                                        {name.substring(0, 10)}
+                                                                    <span key={i} className="entry-task-badge text-xs">
+                                                                        {name.substring(0, 8)}
                                                                     </span>
                                                                 ))}
                                                             </div>
                                                         </td>
-                                                        <td style={{ textAlign: 'right' }}>
-                                                            <span className="amount">
-                                                                ₹{entry.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                                                            </span>
+                                                        <td className="py-2 text-right font-semibold text-emerald-400">
+                                                            ₹{entry.amount.toLocaleString('en-IN')}
                                                         </td>
                                                     </tr>
                                                 ))}
                                             </tbody>
                                         </table>
                                     </div>
-                                </div>
-                            )}
-                        </div>
+                                )}
+                            </CardContent>
+                        </Card>
                     ))}
                 </div>
             )}
 
             {/* Task Rates Reference */}
             {tasks.length > 0 && (
-                <div style={{ marginTop: '2rem' }}>
-                    <h3>📊 {t('rates')}</h3>
-                    <div className="card">
-                        <div className="table-container">
-                            <table className="table">
+                <div className="mt-4">
+                    <h3 className="text-base font-semibold mb-3 flex items-center gap-2 text-white">
+                        <Coins size={18} /> {t('rates')}
+                    </h3>
+                    <Card className="bg-slate-900/50 border-slate-800">
+                        <CardContent className="p-4">
+                            <table className="w-full text-sm">
                                 <thead>
-                                    <tr>
-                                        <th>#</th>
-                                        <th>{t('taskName')}</th>
-                                        <th style={{ textAlign: 'right' }}>{t('ratePerItem')}</th>
+                                    <tr className="text-left text-slate-400">
+                                        <th className="pb-2">#</th>
+                                        <th className="pb-2">{t('taskName')}</th>
+                                        <th className="pb-2 text-right">{t('ratePerItem')}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {tasks.map((task, index) => (
-                                        <tr key={task.id}>
-                                            <td>{index + 1}</td>
-                                            <td>{task.name}</td>
-                                            <td style={{ textAlign: 'right' }}>₹{task.rate.toFixed(2)}</td>
+                                        <tr key={task.id} className="border-t border-slate-800">
+                                            <td className="py-2 text-slate-400">{index + 1}</td>
+                                            <td className="py-2 text-white">{task.name}</td>
+                                            <td className="py-2 text-right font-semibold text-emerald-400">₹{task.rate.toFixed(2)}</td>
                                         </tr>
                                     ))}
                                 </tbody>
                             </table>
-                        </div>
-                    </div>
+                        </CardContent>
+                    </Card>
                 </div>
             )}
         </div>

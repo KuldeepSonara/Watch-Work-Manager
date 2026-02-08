@@ -3,6 +3,12 @@
 import { useState, useEffect } from 'react'
 import { useLanguage } from '@/lib/LanguageContext'
 import { supabase } from '@/lib/supabase'
+import { toast } from 'sonner'
+import { Card, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Clock, UserCircle, Package, CheckSquare, RefreshCw, Save, X, Calendar, Check } from 'lucide-react'
 
 interface Worker {
     id: string
@@ -37,7 +43,6 @@ export default function PendingPage() {
     const [allTasks, setAllTasks] = useState<Task[]>([])
     const [pendingItems, setPendingItems] = useState<PendingItem[]>([])
     const [loading, setLoading] = useState(true)
-    const [message, setMessage] = useState('')
 
     // Reassign modal
     const [showReassign, setShowReassign] = useState<PendingItem | null>(null)
@@ -104,12 +109,10 @@ export default function PendingPage() {
 
     async function handleReassign() {
         if (!showReassign || !reassignWorkerId || !reassignQuantity || reassignTasks.length === 0) {
-            setMessage('Please fill all fields')
-            setTimeout(() => setMessage(''), 3000)
+            toast.error('Please fill all fields')
             return
         }
 
-        // Create new entry
         const { data: newEntry, error } = await supabase
             .from('work_entries')
             .insert({
@@ -121,112 +124,112 @@ export default function PendingPage() {
             .single()
 
         if (error || !newEntry) {
-            setMessage('Error reassigning work')
-            setTimeout(() => setMessage(''), 3000)
+            toast.error('Error reassigning work')
             return
         }
 
-        // Insert task links
         const taskLinks = reassignTasks.map(taskId => ({
             work_entry_id: newEntry.id,
             task_id: taskId
         }))
         await supabase.from('work_entry_tasks').insert(taskLinks)
 
-        setMessage('Work reassigned successfully!')
+        toast.success('Work reassigned!')
         setShowReassign(null)
         fetchData()
-        setTimeout(() => setMessage(''), 3000)
     }
 
     return (
         <div>
-            <div className="header">
-                <h1>⏳ {t('pendingWork')}</h1>
+            {/* Page Header */}
+            <div className="page-header">
+                <h1>
+                    <Clock className="icon" size={28} />
+                    {t('pendingWork')}
+                </h1>
             </div>
 
-            {message && (
-                <div className={`alert ${message.includes('Error') || message.includes('Please') ? 'alert-error' : 'alert-success'}`}>
-                    {message}
-                </div>
-            )}
-
             {loading ? (
-                <div className="text-center">{t('loading')}</div>
+                <div>
+                    {[1, 2, 3].map(i => (
+                        <Card key={i} className="mb-2 bg-slate-900/50 border-slate-800">
+                            <CardContent className="p-4">
+                                <Skeleton className="h-4 w-24 mb-2 bg-slate-800" />
+                                <Skeleton className="h-5 w-40 mb-2 bg-slate-800" />
+                                <Skeleton className="h-10 w-full bg-slate-800" />
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
             ) : pendingItems.length === 0 ? (
                 <div className="empty-state">
-                    <div className="empty-state-icon">✅</div>
-                    <div>{t('noData')}</div>
+                    <div className="empty-state-icon">
+                        <Check size={48} />
+                    </div>
+                    <div className="empty-state-text">All work complete!</div>
+                    <div className="text-slate-500 text-sm">{t('noData')}</div>
                 </div>
             ) : (
                 <div>
                     {pendingItems.map(item => (
-                        <div key={item.entry.id} className="card">
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                                <div>
-                                    <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>
-                                        👷 {item.entry.workers?.name}
+                        <Card key={item.entry.id} className="mb-3 bg-slate-900/50 border-slate-800">
+                            <CardContent className="p-4">
+                                <div className="flex justify-between items-start mb-3">
+                                    <div>
+                                        <div className="font-semibold text-base flex items-center gap-2 text-white">
+                                            <UserCircle size={18} className="text-emerald-400" /> {item.entry.workers?.name}
+                                        </div>
+                                        <div className="text-sm text-slate-400 flex items-center gap-1 mt-1">
+                                            <Calendar size={14} /> {new Date(item.entry.entry_date).toLocaleDateString()}
+                                        </div>
                                     </div>
-                                    <div style={{ fontSize: '0.875rem', color: '#64748b' }}>
-                                        📅 {new Date(item.entry.entry_date).toLocaleDateString()}
+                                    <div className="text-xl font-bold text-emerald-400">
+                                        {item.entry.quantity}
                                     </div>
                                 </div>
-                                <div style={{ textAlign: 'right' }}>
-                                    <div style={{ fontWeight: 600 }}>
-                                        {item.entry.quantity} items
-                                    </div>
-                                </div>
-                            </div>
 
-                            <div style={{ marginBottom: '0.75rem' }}>
-                                <div style={{ fontSize: '0.8125rem', color: '#64748b', marginBottom: '0.5rem' }}>
-                                    ✅ Completed: {item.completedTasks.map(t => t.name).join(', ') || 'None'}
+                                <div className="mb-3">
+                                    <div className="text-sm text-slate-400 mb-1 flex items-center gap-1">
+                                        <Check size={14} /> Done: {item.completedTasks.map(t => t.name).join(', ') || 'None'}
+                                    </div>
+                                    <div className="text-sm font-semibold mb-1 text-amber-400 flex items-center gap-1">
+                                        <Clock size={14} /> {t('remainingTasks')}:
+                                    </div>
+                                    <div className="flex flex-wrap gap-1">
+                                        {item.remainingTasks.map(task => (
+                                            <span key={task.id} className="status-badge status-badge-warning">
+                                                {task.name}
+                                            </span>
+                                        ))}
+                                    </div>
                                 </div>
-                                <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#f59e0b' }}>
-                                    ⏳ {t('remainingTasks')}:
-                                </div>
-                                <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
-                                    {item.remainingTasks.map(task => (
-                                        <span key={task.id} className="badge badge-warning">
-                                            {task.name}
-                                        </span>
-                                    ))}
-                                </div>
-                            </div>
 
-                            <button
-                                className="btn btn-primary btn-block"
-                                onClick={() => openReassign(item)}
-                            >
-                                🔄 {t('reassign')}
-                            </button>
-                        </div>
+                                <Button
+                                    className="big-action-btn w-full bg-blue-600 hover:bg-blue-700"
+                                    onClick={() => openReassign(item)}
+                                >
+                                    <RefreshCw size={18} /> {t('reassign')}
+                                </Button>
+                            </CardContent>
+                        </Card>
                     ))}
                 </div>
             )}
 
             {/* Reassign Modal */}
             {showReassign && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    background: 'rgba(0,0,0,0.5)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '1rem',
-                    zIndex: 1000
-                }}>
-                    <div className="card" style={{ maxWidth: '400px', width: '100%', maxHeight: '90vh', overflow: 'auto' }}>
-                        <h2 style={{ marginTop: 0 }}>🔄 {t('reassign')}</h2>
+                <div className="modal-overlay">
+                    <div className="modal-content bg-slate-900 border border-slate-800">
+                        <h2 className="modal-title text-white">
+                            <RefreshCw size={20} className="text-blue-400" /> {t('reassign')}
+                        </h2>
 
                         <div className="form-group">
-                            <label className="form-label">{t('reassignTo')}</label>
+                            <label className="form-label">
+                                <UserCircle size={18} /> {t('reassignTo')}
+                            </label>
                             <select
-                                className="form-select"
+                                className="large-select bg-slate-800 border-slate-700"
                                 value={reassignWorkerId}
                                 onChange={(e) => setReassignWorkerId(e.target.value)}
                             >
@@ -238,10 +241,12 @@ export default function PendingPage() {
                         </div>
 
                         <div className="form-group">
-                            <label className="form-label">{t('quantity')}</label>
-                            <input
+                            <label className="form-label">
+                                <Package size={18} /> {t('quantity')}
+                            </label>
+                            <Input
                                 type="number"
-                                className="form-input"
+                                className="large-input bg-slate-800 border-slate-700"
                                 value={reassignQuantity}
                                 onChange={(e) => setReassignQuantity(e.target.value)}
                                 min="1"
@@ -249,34 +254,41 @@ export default function PendingPage() {
                         </div>
 
                         <div className="form-group">
-                            <label className="form-label">{t('tasksCompleted')}</label>
-                            <div className="checkbox-group">
+                            <label className="form-label">
+                                <CheckSquare size={18} /> {t('tasksCompleted')}
+                            </label>
+                            <div className="checkbox-grid">
                                 {showReassign.remainingTasks.map(task => (
-                                    <label key={task.id} className="checkbox-item">
+                                    <div
+                                        key={task.id}
+                                        className={`checkbox-item ${reassignTasks.includes(task.id) ? 'selected' : ''}`}
+                                        onClick={() => toggleReassignTask(task.id)}
+                                    >
                                         <input
                                             type="checkbox"
                                             checked={reassignTasks.includes(task.id)}
-                                            onChange={() => toggleReassignTask(task.id)}
+                                            onChange={() => { }}
                                         />
                                         <span>{task.name}</span>
-                                    </label>
+                                    </div>
                                 ))}
                             </div>
                         </div>
 
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                            <button
-                                className="btn btn-success btn-block"
+                        <div className="action-grid">
+                            <Button
+                                className="big-action-btn bg-emerald-600 hover:bg-emerald-700"
                                 onClick={handleReassign}
                             >
-                                ✓ {t('save')}
-                            </button>
-                            <button
-                                className="btn btn-secondary"
+                                <Save size={18} /> {t('save')}
+                            </Button>
+                            <Button
+                                variant="secondary"
+                                className="big-action-btn bg-slate-700 hover:bg-slate-600"
                                 onClick={() => setShowReassign(null)}
                             >
-                                {t('cancel')}
-                            </button>
+                                <X size={18} /> {t('cancel')}
+                            </Button>
                         </div>
                     </div>
                 </div>

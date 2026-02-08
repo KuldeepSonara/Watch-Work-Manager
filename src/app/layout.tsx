@@ -1,17 +1,19 @@
 import type { Metadata, Viewport } from "next";
-import "./globals.css";
+import { Toaster } from "sonner";
 import { LanguageProvider } from "@/lib/LanguageContext";
 import Navigation from "@/components/Navigation";
+import "./globals.css";
+
+export const metadata: Metadata = {
+  title: "Watch Work Manager | ઘડિયાળ કામ મેનેજર",
+  description: "Simple watch assembly work management system",
+};
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-};
-
-export const metadata: Metadata = {
-  title: "Watch Work Manager | ઘડિયાળ કામ મેનેજર",
-  description: "Simple watch assembly work management system",
+  userScalable: false,
 };
 
 export default function RootLayout({
@@ -20,13 +22,21 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="gu">
-      <body>
+    <html lang="gu" className="dark">
+      <body className="dark bg-slate-950 text-white antialiased">
         <LanguageProvider>
           <Navigation />
-          <main className="container">
+          {/* Main content: padding for top nav on desktop, bottom nav on mobile */}
+          <main className="container pt-4 pb-24 md:pt-20 md:pb-8">
             {children}
           </main>
+          <Toaster
+            position="top-center"
+            richColors
+            closeButton
+            duration={3000}
+            theme="dark"
+          />
         </LanguageProvider>
       </body>
     </html>

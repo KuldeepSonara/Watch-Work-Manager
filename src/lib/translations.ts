@@ -1,5 +1,7 @@
 export const translations = {
     en: {
+        // App
+        appTitle: 'Watch Work Manager',
         // Navigation
         home: 'Home',
         workers: 'Workers',
@@ -65,6 +67,8 @@ export const translations = {
         gujarati: 'ગુજરાતી',
     },
     gu: {
+        // App
+        appTitle: 'ઘડિયાળ કામ મેનેજર',
         // Navigation
         home: 'હોમ',
         workers: 'કામદારો',

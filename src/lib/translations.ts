@@ -6,9 +6,9 @@ export const translations = {
         // Navigation
         home: 'Home',
         workers: 'Workers',
-        rates: 'Task Rates',
-        entry: 'Work Entry',
-        pending: 'Pending Work',
+        rates: 'Rates',
+        entry: 'Entry',
+        pending: 'Pending',
         payments: 'Payments',
 
         // Common / Actions
@@ -153,8 +153,8 @@ export const translations = {
         // Navigation
         home: 'હોમ',
         workers: 'કામદારો',
-        rates: 'કામના દર',
-        entry: 'કામની એન્ટ્રી',
+        rates: 'દર',
+        entry: 'એન્ટ્રી',
         pending: 'બાકી કામ',
         payments: 'ચુકવણી',
 

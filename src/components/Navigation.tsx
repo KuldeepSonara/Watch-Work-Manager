@@ -114,7 +114,7 @@ export default function Navigation() {
                                 <div className={`mb-0.5 transition-all duration-300 ${isActive ? '-translate-y-1 scale-110' : 'group-hover:-translate-y-0.5'}`}>
                                     {item.icon}
                                 </div>
-                                <span className={`text-[10px] font-medium leading-none transition-colors truncate w-full text-center px-0.5 ${isActive ? 'text-emerald-400 opacity-100' : 'text-slate-500 opacity-0 group-hover:opacity-100'}`}>
+                                <span className={`text-[10px] font-medium leading-none tracking-tight transition-colors truncate w-full text-center px-0.5 ${isActive ? 'text-emerald-400 opacity-100' : 'text-slate-500 opacity-0 group-hover:opacity-100'}`}>
                                     {t(item.key)}
                                 </span>
                             </Link>

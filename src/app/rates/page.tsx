@@ -7,9 +7,11 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Coins, Plus, FileText, Pencil, Trash2, Save, X, IndianRupee } from 'lucide-react'
+import { Coins, Plus, Pencil, Trash2, Save, X, IndianRupee } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
+import api, { handleApiError } from '@/lib/api'
+import { ApiEndpoints } from '@/lib/enums'
 
 interface Task {
     id: string
@@ -37,15 +39,10 @@ export default function RatesPage() {
     async function fetchTasks() {
         setLoading(true)
         try {
-            const res = await fetch('/api/manage-tasks')
-            const data = await res.json()
-            if (res.ok) {
-                setTasks(data)
-            } else {
-                toast.error(data.error || 'Failed to load tasks')
-            }
-        } catch {
-            toast.error('Failed to load tasks')
+            const res = await api.get(ApiEndpoints.TASKS_MANAGEMENT)
+            setTasks(res.data)
+        } catch (error) {
+            toast.error(handleApiError(error, 'Failed to load tasks'))
         }
         setLoading(false)
     }
@@ -55,28 +52,18 @@ export default function RatesPage() {
         if (!newName.trim() || !newRate.trim()) return
 
         try {
-            const res = await fetch('/api/manage-tasks', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    name: newName.trim(),
-                    rate: parseFloat(newRate),
-                    sort_order: tasks.length + 1
-                })
+            await api.post(ApiEndpoints.TASKS_MANAGEMENT, {
+                name: newName.trim(),
+                rate: parseFloat(newRate),
+                sort_order: tasks.length + 1
             })
-
-            if (res.ok) {
-                toast.success(t('taskAdded'))
-                setNewName('')
-                setNewRate('')
-                setIsAddModalOpen(false)
-                fetchTasks()
-            } else {
-                const data = await res.json()
-                toast.error(data.error || t('failedAddTask'))
-            }
-        } catch {
-            toast.error(t('failedAddTask'))
+            toast.success(t('taskAdded'))
+            setNewName('')
+            setNewRate('')
+            setIsAddModalOpen(false)
+            fetchTasks()
+        } catch (error) {
+            toast.error(handleApiError(error, t('failedAddTask')))
         }
     }
 
@@ -85,25 +72,15 @@ export default function RatesPage() {
         if (!editingTask || !editName.trim() || !editRate.trim()) return
 
         try {
-            const res = await fetch(`/api/tasks/${editingTask.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    name: editName.trim(),
-                    rate: parseFloat(editRate)
-                })
+            await api.put(`${ApiEndpoints.TASKS_MANAGEMENT}/${editingTask.id}`, {
+                name: editName.trim(),
+                rate: parseFloat(editRate)
             })
-
-            if (res.ok) {
-                toast.success(t('taskUpdated'))
-                setEditingTask(null)
-                fetchTasks()
-            } else {
-                const data = await res.json()
-                toast.error(data.error || t('failedUpdateTask'))
-            }
-        } catch {
-            toast.error(t('failedUpdateTask'))
+            toast.success(t('taskUpdated'))
+            setEditingTask(null)
+            fetchTasks()
+        } catch (error) {
+            toast.error(handleApiError(error, t('failedUpdateTask')))
         }
     }
 
@@ -115,15 +92,11 @@ export default function RatesPage() {
         if (!deleteId) return
 
         try {
-            const res = await fetch(`/api/tasks/${deleteId}`, { method: 'DELETE' })
-            if (res.ok) {
-                toast.success(t('taskDeleted'))
-                fetchTasks()
-            } else {
-                toast.error(t('failedDeleteTask'))
-            }
-        } catch {
-            toast.error(t('failedDeleteTask'))
+            await api.delete(`${ApiEndpoints.TASKS_MANAGEMENT}/${deleteId}`)
+            toast.success(t('taskDeleted'))
+            fetchTasks()
+        } catch (error) {
+            toast.error(handleApiError(error, t('failedDeleteTask')))
         } finally {
             setDeleteId(null)
         }
@@ -257,7 +230,7 @@ export default function RatesPage() {
                     {tasks.map((task, index) => (
                         <Card
                             key={task.id}
-                            className="bg-slate-900/50 border-slate-800 hover:border-emerald-500/50 transition-all duration-300 group relative overflow-hidden"
+                            className="bg-slate-900/50 border-slate-800 hover:border-emerald-500/50 transition-all duration-300 group relative overflow-hidden card-hover"
                         >
                             <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 

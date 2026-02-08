@@ -9,6 +9,8 @@ import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Clock, UserCircle, Package, CheckSquare, RefreshCw, Save, X, Calendar, Check, CheckCircle2, ListFilter } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
+import api, { handleApiError } from '@/lib/api'
+import { ApiEndpoints, WorkStatus } from '@/lib/enums'
 
 interface Worker {
     id: string
@@ -60,18 +62,18 @@ export default function PendingPage() {
         setLoading(true)
         try {
             const [workersRes, tasksRes, entriesRes] = await Promise.all([
-                fetch('/api/workers'),
-                fetch('/api/manage-tasks'),
-                fetch('/api/entries')
+                api.get(ApiEndpoints.WORKERS),
+                api.get(ApiEndpoints.TASKS_MANAGEMENT),
+                api.get(ApiEndpoints.ENTRIES)
             ])
 
-            if (workersRes.ok) setWorkers(await workersRes.json())
+            setWorkers(workersRes.data)
 
-            const tasks = tasksRes.ok ? await tasksRes.json() : []
+            const tasks = tasksRes.data
             setAllTasks(tasks)
 
-            if (entriesRes.ok && tasks.length > 0) {
-                const entries: WorkEntry[] = await entriesRes.json()
+            if (tasks.length > 0) {
+                const entries: WorkEntry[] = entriesRes.data
                 const allTaskIds = tasks.map((t: Task) => t.id)
                 const pending: PendingItem[] = []
 
@@ -80,7 +82,7 @@ export default function PendingPage() {
                     const remainingTaskIds = allTaskIds.filter((id: string) => !completedTaskIds.includes(id))
 
                     // Show entries with remaining tasks OR in_progress status
-                    if (remainingTaskIds.length > 0 || entry.status === 'in_progress') {
+                    if (remainingTaskIds.length > 0 || entry.status === WorkStatus.IN_PROGRESS) {
                         pending.push({
                             entry,
                             completedTasks: tasks.filter((t: Task) => completedTaskIds.includes(t.id)),
@@ -90,8 +92,8 @@ export default function PendingPage() {
                 })
                 setPendingItems(pending)
             }
-        } catch {
-            toast.error(t('failedLoadData'))
+        } catch (error) {
+            toast.error(handleApiError(error, t('failedLoadData')))
         }
         setLoading(false)
     }
@@ -118,48 +120,30 @@ export default function PendingPage() {
         }
 
         try {
-            const res = await fetch('/api/entries', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    worker_id: reassignWorkerId,
-                    quantity: parseInt(reassignQuantity),
-                    entry_date: new Date().toISOString().split('T')[0],
-                    status: 'in_progress',
-                    task_ids: reassignTasks
-                })
+            await api.post(ApiEndpoints.ENTRIES, {
+                worker_id: reassignWorkerId,
+                quantity: parseInt(reassignQuantity),
+                entry_date: new Date().toISOString().split('T')[0],
+                status: WorkStatus.IN_PROGRESS,
+                task_ids: reassignTasks
             })
 
-            if (res.ok) {
-                toast.success(t('workReassigned'))
-                setShowReassign(null)
-                fetchData()
-            } else {
-                const data = await res.json()
-                toast.error(data.error || t('failedReassign'))
-            }
-        } catch {
-            toast.error(t('failedReassign'))
+            toast.success(t('workReassigned'))
+            setShowReassign(null)
+            fetchData()
+        } catch (error) {
+            toast.error(handleApiError(error, t('failedReassign')))
         }
     }
 
     // Change status of an entry
-    async function handleStatusChange(entryId: string, newStatus: 'in_progress' | 'completed') {
+    async function handleStatusChange(entryId: string, newStatus: WorkStatus.IN_PROGRESS | WorkStatus.COMPLETED) {
         try {
-            const res = await fetch(`/api/entries/${entryId}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: newStatus })
-            })
-
-            if (res.ok) {
-                toast.success(newStatus === 'completed' ? t('markedComplete') : t('markedInProgress'))
-                fetchData()
-            } else {
-                toast.error(t('failedUpdateStatus'))
-            }
-        } catch {
-            toast.error(t('failedUpdateStatus'))
+            await api.patch(`${ApiEndpoints.ENTRIES}/${entryId}`, { status: newStatus })
+            toast.success(newStatus === WorkStatus.COMPLETED ? t('markedComplete') : t('markedInProgress'))
+            fetchData()
+        } catch (error) {
+            toast.error(handleApiError(error, t('failedUpdateStatus')))
         }
     }
 
@@ -240,7 +224,7 @@ export default function PendingPage() {
                     {filteredItems.map(item => (
                         <Card
                             key={item.entry.id}
-                            className="bg-slate-900/50 border-slate-800 hover:border-emerald-500/50 transition-all duration-300 group relative overflow-hidden h-full flex flex-col"
+                            className="bg-slate-900/50 border-slate-800 hover:border-emerald-500/50 transition-all duration-300 group relative overflow-hidden h-full flex flex-col card-hover"
                         >
                             <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 
@@ -339,17 +323,17 @@ export default function PendingPage() {
                                 {/* Action Buttons */}
                                 <div className="flex gap-2 w-full mt-auto">
                                     {/* Status Toggle Button */}
-                                    {item.entry.status === 'in_progress' ? (
+                                    {item.entry.status === WorkStatus.IN_PROGRESS ? (
                                         <Button
                                             className="flex-1 bg-emerald-600 hover:bg-emerald-700 h-9 md:h-10 text-xs md:text-sm"
-                                            onClick={() => handleStatusChange(item.entry.id, 'completed')}
+                                            onClick={() => handleStatusChange(item.entry.id, WorkStatus.COMPLETED)}
                                         >
                                             <CheckCircle2 size={16} className="mr-1.5" /> <span className="truncate">{t('markComplete')}</span>
                                         </Button>
                                     ) : (
                                         <Button
                                             className="flex-1 bg-amber-600 hover:bg-amber-700 h-9 md:h-10 text-xs md:text-sm"
-                                            onClick={() => handleStatusChange(item.entry.id, 'in_progress')}
+                                            onClick={() => handleStatusChange(item.entry.id, WorkStatus.IN_PROGRESS)}
                                         >
                                             <Clock size={16} className="mr-1.5" /> <span className="truncate">{t('markInProgress')}</span>
                                         </Button>

@@ -46,6 +46,7 @@ export const translations = {
         deleteWorkerTitle: 'Delete Worker',
         deleteWorkerDesc: 'Are you sure you want to delete this worker? This action cannot be undone.',
         pendingPayment: 'Pending: ₹',
+        cannotDeleteWorkerPending: 'Cannot delete worker with pending work. Please complete or reassign all in-progress work first.',
 
         // Task rates
         taskName: 'Task Name',
@@ -183,6 +184,7 @@ export const translations = {
         deleteWorkerTitle: 'કામદાર ડિલીટ કરો',
         deleteWorkerDesc: 'શું તમે ખરેખર આ કામદારને ડિલીટ કરવા માંગો છો? આ ક્રિયા પાછી લાવી શકાશે નહીં.',
         pendingPayment: 'બાકી: ₹',
+        cannotDeleteWorkerPending: 'બાકી કામ સાથે કામદારને ડિલીટ કરી શકાતા નથી. કૃપા કરીને પહેલા બધા ચાલુ કામ પૂર્ણ કરો અથવા ફરીથી સોંપો.',
 
         // Task rates
         taskName: 'કામનું નામ',

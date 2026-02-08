@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Wallet, UserCircle, Calendar, ChevronDown, ChevronUp, Coins, IndianRupee, CheckCircle2, Package, Clock } from 'lucide-react'
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
+import api, { handleApiError } from '@/lib/api'
+import { ApiEndpoints } from '@/lib/enums'
 
 interface PaymentDetail {
     entry_id: string
@@ -48,17 +50,12 @@ export default function PaymentsPage() {
     async function fetchPayments() {
         setLoading(true)
         try {
-            const res = await fetch('/api/worker-payments')
-            if (res.ok) {
-                const data = await res.json()
-                setPayments(data.payments || [])
-                setGrandTotal(data.grandTotal || 0)
-            } else {
-                const err = await res.json()
-                toast.error(err.error || t('failedLoadPayments'))
-            }
-        } catch {
-            toast.error(t('failedLoadPayments'))
+            const res = await api.get(ApiEndpoints.PAYMENTS)
+            const data = res.data
+            setPayments(data.payments || [])
+            setGrandTotal(data.grandTotal || 0)
+        } catch (error) {
+            toast.error(handleApiError(error, t('failedLoadPayments')))
         }
         setLoading(false)
     }
@@ -80,20 +77,11 @@ export default function PaymentsPage() {
         if (!selectedWorkerId) return
 
         try {
-            const res = await fetch('/api/worker-payments', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ worker_id: selectedWorkerId })
-            })
-
-            if (res.ok) {
-                toast.success(t('paidSuccessfully'))
-                fetchPayments()
-            } else {
-                toast.error(t('failedMarkPaid'))
-            }
-        } catch {
-            toast.error(t('failedMarkPaid'))
+            await api.post(ApiEndpoints.PAYMENTS, { worker_id: selectedWorkerId })
+            toast.success(t('paidSuccessfully'))
+            fetchPayments()
+        } catch (error) {
+            toast.error(handleApiError(error, t('failedMarkPaid')))
         } finally {
             setModalOpen(false)
             setSelectedWorkerId(null)
@@ -164,7 +152,7 @@ export default function PaymentsPage() {
                     <div className="space-y-3">
                         {payableWorkers.length > 0 ? (
                             payableWorkers.map(payment => (
-                                <Card key={payment.worker_id} className="bg-slate-900/50 border-slate-800 overflow-hidden hover:border-slate-700 transition-colors">
+                                <Card key={payment.worker_id} className="bg-slate-900/50 border-slate-800 overflow-hidden hover:border-slate-700 transition-colors card-hover">
                                     <CardContent className="p-0">
                                         {/* Worker Header - Clickable */}
                                         <div
@@ -266,7 +254,7 @@ export default function PaymentsPage() {
                             </h2>
                             <div className="space-y-3 opacity-90">
                                 {upcomingWorkers.map(payment => (
-                                    <Card key={`upcoming-${payment.worker_id}`} className="bg-slate-900/30 border-slate-800/60 overflow-hidden hover:border-slate-700/60 transition-colors border-dashed">
+                                    <Card key={`upcoming-${payment.worker_id}`} className="bg-slate-900/30 border-slate-800/60 overflow-hidden hover:border-slate-700/60 transition-colors border-dashed card-hover">
                                         <CardContent className="p-0">
                                             <div
                                                 className="p-4 sm:p-5 flex justify-between items-center cursor-pointer hover:bg-slate-800/20 transition-colors"

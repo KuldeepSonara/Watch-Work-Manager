@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '@/lib/supabase'
+import { WorkStatus } from '@/lib/enums'
 
 export interface WorkEntry {
     id: string
@@ -45,7 +46,7 @@ class EntriesService {
         // Handle missing status column gracefully
         return (data || []).map(entry => ({
             ...entry,
-            status: entry.status || 'in_progress'
+            status: entry.status || WorkStatus.IN_PROGRESS
         }))
     }
 
@@ -57,7 +58,7 @@ class EntriesService {
             .single()
 
         if (error) throw error
-        return data ? { ...data, status: data.status || 'in_progress' } : null
+        return data ? { ...data, status: data.status || WorkStatus.IN_PROGRESS } : null
     }
 
     async create(dto: CreateEntryDto): Promise<WorkEntry> {
@@ -68,7 +69,7 @@ class EntriesService {
                 worker_id: dto.worker_id,
                 quantity: dto.quantity,
                 entry_date: dto.entry_date || new Date().toISOString().split('T')[0],
-                status: dto.status || 'in_progress'
+                status: dto.status || WorkStatus.IN_PROGRESS
             })
             .select()
             .single()
@@ -105,7 +106,7 @@ class EntriesService {
         return data
     }
 
-    async updateStatus(id: string, status: 'in_progress' | 'completed'): Promise<WorkEntry> {
+    async updateStatus(id: string, status: WorkStatus.IN_PROGRESS | WorkStatus.COMPLETED): Promise<WorkEntry> {
         const { data, error } = await supabase
             .from('work_entries')
             .update({ status })

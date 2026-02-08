@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '@/lib/supabase'
+import { WorkStatus } from '@/lib/enums'
 import { workersService, Worker } from './workers.service'
 import { tasksService, Task } from './tasks.service'
 
@@ -103,11 +104,11 @@ class PaymentsService {
                     amount: entryTotal
                 }
 
-                if (entry.status === 'completed') {
+                if (entry.status === WorkStatus.COMPLETED) {
                     workerPayments[workerId].total += entryTotal
                     workerPayments[workerId].entries += 1
                     workerPayments[workerId].details.push(detail)
-                } else if (entry.status === 'in_progress') {
+                } else if (entry.status === WorkStatus.IN_PROGRESS) {
                     workerPayments[workerId].upcoming_total += entryTotal
                     workerPayments[workerId].upcoming_entries += 1
                     workerPayments[workerId].upcoming_details.push(detail)
@@ -130,9 +131,9 @@ class PaymentsService {
         // Using 'status' column since 'paid' column does not exist
         const { error } = await supabase
             .from('work_entries')
-            .update({ status: 'paid' })
+            .update({ status: WorkStatus.PAID })
             .eq('worker_id', workerId)
-            .eq('status', 'completed')
+            .eq('status', WorkStatus.COMPLETED)
 
         if (error) throw error
     }
@@ -141,7 +142,7 @@ class PaymentsService {
         const { data, error } = await supabase
             .from('work_entries')
             .select('*, workers(id, name), work_entry_tasks(task_id)')
-            .neq('status', 'paid') // Exclude already paid entries
+            .neq('status', WorkStatus.PAID) // Exclude already paid entries
             .order('entry_date', { ascending: false })
 
         if (error) throw error

@@ -5,6 +5,7 @@
 
 import { NextResponse } from 'next/server'
 import { workersService, CreateWorkerDto, UpdateWorkerDto, paymentsService } from '@/services'
+import { ERROR_CODES } from '@/lib/constants'
 
 export class WorkersController {
     static async getAll() {
@@ -79,6 +80,13 @@ export class WorkersController {
             await workersService.delete(id)
             return new Response(null, { status: 204 })
         } catch (error) {
+            // Handle specific validation errors
+            if (error instanceof Error && error.message === ERROR_CODES.WORKER_HAS_PENDING_WORK) {
+                return NextResponse.json(
+                    { error: ERROR_CODES.WORKER_HAS_PENDING_WORK },
+                    { status: 400 }
+                )
+            }
             return this.handleError(error, 'Failed to delete worker')
         }
     }

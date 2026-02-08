@@ -68,7 +68,7 @@ export default function Navigation() {
 
             {/* Floating Language Toggle for Mobile */}
             <button
-                className="md:hidden fixed bottom-24 left-4 w-12 h-12 rounded-full bg-slate-800 border border-slate-700 shadow-lg text-white flex items-center justify-center z-40 active:scale-95 transition-transform"
+                className="md:hidden fixed top-6 right-4 w-12 h-12 rounded-full bg-slate-800/80 backdrop-blur-md border border-slate-700 shadow-lg text-white flex items-center justify-center z-50 active:scale-95 transition-all duration-200"
                 onClick={() => setLanguage(language === 'en' ? 'gu' : 'en')}
             >
                 <span className="font-bold text-sm">

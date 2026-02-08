@@ -10,6 +10,9 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Users, Plus, UserCircle, Pencil, Trash2, Save, X } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
+import api, { handleApiError } from '@/lib/api'
+import { ApiEndpoints } from '@/lib/enums'
+import { ERROR_CODES } from '@/lib/constants'
 
 interface Worker {
     id: string
@@ -34,15 +37,10 @@ export default function WorkersPage() {
     async function fetchWorkers() {
         setLoading(true)
         try {
-            const res = await fetch('/api/workers')
-            const data = await res.json()
-            if (res.ok) {
-                setWorkers(data)
-            } else {
-                toast.error(data.error || 'Failed to load workers')
-            }
-        } catch {
-            toast.error('Failed to load workers')
+            const res = await api.get(ApiEndpoints.WORKERS)
+            setWorkers(res.data)
+        } catch (error) {
+            toast.error(handleApiError(error, 'Failed to load workers'))
         }
         setLoading(false)
     }
@@ -52,23 +50,13 @@ export default function WorkersPage() {
         if (!newName.trim()) return
 
         try {
-            const res = await fetch('/api/workers', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: newName.trim() })
-            })
-
-            if (res.ok) {
-                toast.success(t('workerAdded'))
-                setNewName('')
-                setIsAddModalOpen(false)
-                fetchWorkers()
-            } else {
-                const data = await res.json()
-                toast.error(data.error || t('failedAddWorker'))
-            }
-        } catch {
-            toast.error(t('failedAddWorker'))
+            await api.post(ApiEndpoints.WORKERS, { name: newName.trim() })
+            toast.success(t('workerAdded'))
+            setNewName('')
+            setIsAddModalOpen(false)
+            fetchWorkers()
+        } catch (error) {
+            toast.error(handleApiError(error, t('failedAddWorker')))
         }
     }
 
@@ -77,22 +65,12 @@ export default function WorkersPage() {
         if (!editingWorker || !editName.trim()) return
 
         try {
-            const res = await fetch(`/api/workers/${editingWorker.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: editName.trim() })
-            })
-
-            if (res.ok) {
-                toast.success(t('workerUpdated'))
-                setEditingWorker(null)
-                fetchWorkers()
-            } else {
-                const data = await res.json()
-                toast.error(data.error || t('failedUpdateWorker'))
-            }
-        } catch {
-            toast.error(t('failedUpdateWorker'))
+            await api.put(`${ApiEndpoints.WORKERS}/${editingWorker.id}`, { name: editName.trim() })
+            toast.success(t('workerUpdated'))
+            setEditingWorker(null)
+            fetchWorkers()
+        } catch (error) {
+            toast.error(handleApiError(error, t('failedUpdateWorker')))
         }
     }
 
@@ -104,16 +82,19 @@ export default function WorkersPage() {
         if (!deleteId) return
 
         try {
-            const res = await fetch(`/api/workers/${deleteId}`, { method: 'DELETE' })
-            if (res.ok) {
-                toast.success(t('workerDeleted'))
-                fetchWorkers()
+            await api.delete(`${ApiEndpoints.WORKERS}/${deleteId}`)
+            toast.success(t('workerDeleted'))
+            fetchWorkers()
+        } catch (error) {
+            const data = (error as any).response?.data
+            // Check for specific validation error
+            if (data?.error === ERROR_CODES.WORKER_HAS_PENDING_WORK) {
+                toast.error(t('cannotDeleteWorkerPending'))
             } else {
-                toast.error(t('failedDeleteWorker'))
+                toast.error(handleApiError(error, t('failedDeleteWorker')))
             }
-        } catch {
-            toast.error(t('failedDeleteWorker'))
-        } finally {
+        }
+        finally {
             setDeleteId(null)
         }
     }
@@ -227,7 +208,7 @@ export default function WorkersPage() {
                     {workers.map(worker => (
                         <Card
                             key={worker.id}
-                            className="bg-slate-900/50 border-slate-800 hover:border-emerald-500/50 transition-all duration-300 group relative overflow-hidden"
+                            className="bg-slate-900/50 border-slate-800 hover:border-emerald-500/50 transition-all duration-300 group relative overflow-hidden card-hover"
                         >
                             <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 

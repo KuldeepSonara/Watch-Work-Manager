@@ -11,6 +11,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Modal } from '@/components/ui/Modal'
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
 import { FileEdit, UserCircle, Package, Calendar, CheckSquare, Save, X, Pencil, Trash2, Clock, CheckCircle2, Plus } from 'lucide-react'
+import api, { handleApiError } from '@/lib/api'
+import { ApiEndpoints, WorkStatus } from '@/lib/enums'
 
 interface Worker {
     id: string
@@ -53,7 +55,7 @@ function EntryContent() {
     const [quantity, setQuantity] = useState('')
     const [selectedTasks, setSelectedTasks] = useState<string[]>([])
     const [entryDate, setEntryDate] = useState(new Date().toISOString().split('T')[0])
-    const [status, setStatus] = useState<'in_progress' | 'completed'>('in_progress')
+    const [status, setStatus] = useState<WorkStatus.IN_PROGRESS | WorkStatus.COMPLETED>(WorkStatus.IN_PROGRESS)
 
     useEffect(() => {
         fetchData()
@@ -68,7 +70,7 @@ function EntryContent() {
                 setQuantity(entry.quantity.toString())
                 setSelectedTasks(entry.work_entry_tasks?.map(t => t.task_id) || [])
                 setEntryDate(entry.entry_date)
-                setStatus((entry.status as 'in_progress' | 'completed') || 'in_progress')
+                setStatus((entry.status as WorkStatus.IN_PROGRESS | WorkStatus.COMPLETED) || WorkStatus.IN_PROGRESS)
                 setIsAddModalOpen(true) // Open modal when editing
             }
         }
@@ -78,16 +80,16 @@ function EntryContent() {
         setLoading(true)
         try {
             const [workersRes, tasksRes, entriesRes] = await Promise.all([
-                fetch('/api/workers'),
-                fetch('/api/manage-tasks'),
-                fetch('/api/entries')
+                api.get(ApiEndpoints.WORKERS),
+                api.get(ApiEndpoints.TASKS_MANAGEMENT),
+                api.get(ApiEndpoints.ENTRIES)
             ])
 
-            if (workersRes.ok) setWorkers(await workersRes.json())
-            if (tasksRes.ok) setTasks(await tasksRes.json())
-            if (entriesRes.ok) setEntries(await entriesRes.json())
-        } catch {
-            toast.error('Failed to load data')
+            setWorkers(workersRes.data)
+            setTasks(tasksRes.data)
+            setEntries(entriesRes.data)
+        } catch (error) {
+            toast.error(handleApiError(error, 'Failed to load data'))
         }
         setLoading(false)
     }
@@ -113,34 +115,23 @@ function EntryContent() {
                 worker_id: workerId,
                 quantity: parseInt(quantity),
                 entry_date: entryDate,
-                status,
+                status: status as WorkStatus, // Ensure status is of type WorkStatus
                 task_ids: selectedTasks
             }
 
-            const res = editId
-                ? await fetch(`/api/entries/${editId}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(body)
-                })
-                : await fetch('/api/entries', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(body)
-                })
-
-            if (res.ok) {
-                toast.success(editId ? t('entryUpdated') : t('entrySaved'))
-                if (editId) router.push('/entry')
-                resetForm()
-                setIsAddModalOpen(false)
-                fetchData()
+            if (editId) {
+                await api.put(`${ApiEndpoints.ENTRIES}/${editId}`, body)
             } else {
-                const data = await res.json()
-                toast.error(data.error || t('failedSaveEntry'))
+                await api.post(ApiEndpoints.ENTRIES, body)
             }
-        } catch {
-            toast.error(t('failedSaveEntry'))
+
+            toast.success(editId ? t('entryUpdated') : t('entrySaved'))
+            if (editId) router.push('/entry')
+            resetForm()
+            setIsAddModalOpen(false)
+            fetchData()
+        } catch (error) {
+            toast.error(handleApiError(error, t('failedSaveEntry')))
         }
     }
 
@@ -149,7 +140,7 @@ function EntryContent() {
         setQuantity('')
         setSelectedTasks([])
         setEntryDate(new Date().toISOString().split('T')[0])
-        setStatus('in_progress')
+        setStatus(WorkStatus.IN_PROGRESS)
     }
 
     function confirmDelete(id: string) {
@@ -160,15 +151,11 @@ function EntryContent() {
         if (!deleteId) return
 
         try {
-            const res = await fetch(`/api/entries/${deleteId}`, { method: 'DELETE' })
-            if (res.ok) {
-                toast.success(t('entryDeleted'))
-                fetchData()
-            } else {
-                toast.error(t('failedDeleteEntry'))
-            }
-        } catch {
-            toast.error(t('failedDeleteEntry'))
+            await api.delete(`${ApiEndpoints.ENTRIES}/${deleteId}`)
+            toast.success(t('entryDeleted'))
+            fetchData()
+        } catch (error) {
+            toast.error(handleApiError(error, t('failedDeleteEntry')))
         } finally {
             setDeleteId(null)
         }
@@ -269,15 +256,15 @@ function EntryContent() {
                         </label>
                         <div className="grid grid-cols-2 gap-3">
                             <div
-                                className={`checkbox-item ${status === 'in_progress' ? 'selected' : ''}`}
-                                onClick={() => setStatus('in_progress')}
+                                className={`checkbox-item ${status === WorkStatus.IN_PROGRESS ? 'selected' : ''}`}
+                                onClick={() => setStatus(WorkStatus.IN_PROGRESS)}
                             >
                                 <Clock size={20} className="text-amber-400" />
                                 <span>{t('inProgress')}</span>
                             </div>
                             <div
-                                className={`checkbox-item ${status === 'completed' ? 'selected' : ''}`}
-                                onClick={() => setStatus('completed')}
+                                className={`checkbox-item ${status === WorkStatus.COMPLETED ? 'selected' : ''}`}
+                                onClick={() => setStatus(WorkStatus.COMPLETED)}
                             >
                                 <CheckCircle2 size={20} className="text-emerald-400" />
                                 <span>{t('completed')}</span>
@@ -339,7 +326,7 @@ function EntryContent() {
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {entries.map(entry => (
-                        <Card key={entry.id} className="bg-slate-900/50 border-slate-800 hover:border-slate-700 transition-colors group relative overflow-hidden">
+                        <Card key={entry.id} className="bg-slate-900/50 border-slate-800 hover:border-slate-700 transition-colors group relative overflow-hidden card-hover">
                             <div className={`absolute top-0 left-0 w-1 h-full transition-colors ${entry.status === 'completed' ? 'bg-emerald-500' :
                                 entry.status === 'paid' ? 'bg-blue-500' : 'bg-amber-500/50'
                                 }`} />

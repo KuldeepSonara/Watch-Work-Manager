@@ -623,9 +623,34 @@ body {
   display: none;
 }
 
-/* Touch feedback for all interactive elements */
+/* Touch feedback and Pointer Cursor for all interactive elements */
 button,
 a,
-.clickable {
+input[type="submit"],
+input[type="button"],
+label,
+select,
+.clickable,
+[role="button"] {
+  cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* Ensure disabled elements don't show pointer */
+button:disabled,
+input:disabled,
+select:disabled,
+.disabled {
+  cursor: not-allowed !important;
+}
+
+/* Card Hover Effects for better "Section" UX */
+.card-hover {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.card-hover:hover {
+  border-color: hsl(var(--primary) / 0.5);
+  background-color: hsl(var(--card) / 0.8);
 }

@@ -57,7 +57,7 @@ export function ConfirmationModal({
                             onClick={onClose}
                             className="bg-slate-800 hover:bg-slate-700 text-white"
                         >
-                            {cancelLabel}
+                            {finalCancelLabel}
                         </Button>
                         <Button
                             onClick={() => {
@@ -69,7 +69,7 @@ export function ConfirmationModal({
                                     'bg-emerald-600 hover:bg-emerald-700'
                                 } text-white`}
                         >
-                            {confirmLabel}
+                            {finalConfirmLabel}
                         </Button>
                     </div>
                 </div>

@@ -13,11 +13,21 @@ interface BeforeInstallPromptEvent extends Event {
 export function InstallPrompt() {
     const { t } = useLanguage()
     const [isIOS, setIsIOS] = useState(false)
+    const [isMobile, setIsMobile] = useState(false)
     const [isStandalone, setIsStandalone] = useState(false)
     const [showPrompt, setShowPrompt] = useState(false)
     const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
 
     useEffect(() => {
+        // Check if mobile device
+        const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+        setIsMobile(isMobileDevice)
+
+        // Don't show on desktop
+        if (!isMobileDevice) {
+            return
+        }
+
         // Check if iOS
         const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream
         setIsIOS(isIOSDevice)
@@ -66,8 +76,8 @@ export function InstallPrompt() {
         localStorage.setItem('pwa-install-dismissed', Date.now().toString())
     }
 
-    // Don't show if already installed
-    if (isStandalone || !showPrompt) {
+    // Don't show if not mobile, already installed, or dismissed
+    if (!isMobile || isStandalone || !showPrompt) {
         return null
     }
 

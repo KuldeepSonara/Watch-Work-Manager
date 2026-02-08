@@ -2,6 +2,7 @@ export const translations = {
     en: {
         // App
         appTitle: 'Watch Work Manager',
+        welcomeMessage: 'Select a section to get started',
         // Navigation
         home: 'Home',
         workers: 'Workers',
@@ -127,6 +128,8 @@ export const translations = {
         confirmPaymentDesc: 'Are you sure you want to mark all completed work for this worker as paid? This action cannot be undone.',
         failedLoadPayments: 'Failed to load payments',
         failedMarkPaid: 'Failed to mark as paid',
+        paidSuccessfully: 'Paid successfully!',
+        failedLoadData: 'Failed to load data',
 
         // Language
         language: 'Language',
@@ -136,6 +139,7 @@ export const translations = {
     gu: {
         // App
         appTitle: 'ઘડિયાળ કામ મેનેજર',
+        welcomeMessage: 'શરૂ કરવા માટે એક વિભાગ પસંદ કરો',
         // Navigation
         home: 'હોમ',
         workers: 'કામદારો',
@@ -261,6 +265,8 @@ export const translations = {
         confirmPaymentDesc: 'શું તમે આ કામદારના તમામ પૂર્ણ થયેલા કામને ચૂકવેલ તરીકે ચિહ્નિત કરવા માંગો છો? આ ક્રિયા પાછી લાવી શકાશે નહીં.',
         failedLoadPayments: 'ચુકવણી લોડ કરવામાં નિષ્ફળ',
         failedMarkPaid: 'ચૂકવેલ તરીકે ચિહ્નિત કરવામાં નિષ્ફળ',
+        paidSuccessfully: 'ચુકવણી સફળતાપૂર્વક થઈ ગઈ!',
+        failedLoadData: 'ડેટા લોડ કરવામાં નિષ્ફળ',
 
         // Language
         language: 'ભાષા',

@@ -55,10 +55,10 @@ export default function PaymentsPage() {
                 setGrandTotal(data.grandTotal || 0)
             } else {
                 const err = await res.json()
-                toast.error(err.error || 'Failed to load payments')
+                toast.error(err.error || t('failedLoadPayments'))
             }
         } catch {
-            toast.error('Failed to load payments')
+            toast.error(t('failedLoadPayments'))
         }
         setLoading(false)
     }
@@ -87,13 +87,13 @@ export default function PaymentsPage() {
             })
 
             if (res.ok) {
-                toast.success('Marked as paid!')
+                toast.success(t('paidSuccessfully'))
                 fetchPayments()
             } else {
-                toast.error('Failed to mark as paid')
+                toast.error(t('failedMarkPaid'))
             }
         } catch {
-            toast.error('Failed to mark as paid')
+            toast.error(t('failedMarkPaid'))
         } finally {
             setModalOpen(false)
             setSelectedWorkerId(null)
@@ -118,7 +118,11 @@ export default function PaymentsPage() {
             {/* Note about completed only */}
             <div className="text-sm text-slate-400 mb-3 text-center">
                 <CheckCircle2 size={14} className="inline mr-1" />
-                Showing <span className="text-emerald-400 font-semibold">completed</span> and <span className="text-amber-400 font-semibold">upcoming</span> work
+                {t('showingStatus').split('completed')[0]}
+                <span className="text-emerald-400 font-semibold">{t('completed').toLowerCase()}</span>
+                {t('showingStatus').split('completed')[1]?.split('upcoming')[0]}
+                <span className="text-amber-400 font-semibold">{t('upcoming').toLowerCase().split('(')[0].trim()}</span>
+                {t('showingStatus').split('upcoming')[1]}
             </div>
 
             {/* Grand Total */}
@@ -133,7 +137,7 @@ export default function PaymentsPage() {
                         {grandTotal.toFixed(2)}
                     </div>
                     <div className="mt-4 inline-flex items-center rounded-full bg-white/20 px-3 py-1 text-xs font-medium text-emerald-50backdrop-blur-sm border border-white/10">
-                        <Wallet size={12} className="mr-1.5" /> Pending Payments
+                        <Wallet size={12} className="mr-1.5" /> {t('pendingPayments')}
                     </div>
                 </div>
             </div>
@@ -175,13 +179,13 @@ export default function PaymentsPage() {
                                                     <div className="font-bold text-white text-lg">{payment.worker_name}</div>
                                                     <div className="text-sm text-slate-400 flex items-center gap-1.5 font-medium">
                                                         <CheckCircle2 size={14} className="text-emerald-500" />
-                                                        {payment.entries} completed entries
+                                                        {payment.entries} {t('completedEntries')}
                                                     </div>
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-3">
                                                 <div className="flex flex-col items-end">
-                                                    <div className="text-sm text-slate-500 font-medium uppercase">Total</div>
+                                                    <div className="text-sm text-slate-500 font-medium uppercase">{t('all')}</div>
                                                     <div className="flex items-center gap-0.5 text-xl font-bold text-emerald-400">
                                                         <IndianRupee size={18} />
                                                         {payment.total.toFixed(2)}
@@ -197,7 +201,7 @@ export default function PaymentsPage() {
                                         {expandedWorker === payment.worker_id && (
                                             <div className="border-t border-slate-800 bg-slate-900/30 animate-in slide-in-from-top-2 duration-200">
                                                 <div className="p-4 space-y-3">
-                                                    <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 px-1">Breakdown</div>
+                                                    <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 px-1">{t('breakdown')}</div>
                                                     {payment.details.map((detail, index) => (
                                                         <div key={detail.entry_id} className="bg-slate-950/30 rounded-xl p-3 border border-slate-800/50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                                                             <div className="flex items-start gap-3">
@@ -235,7 +239,7 @@ export default function PaymentsPage() {
                                                         onClick={() => initiatePayment(payment.worker_id)}
                                                     >
                                                         <CheckCircle2 size={20} className="mr-2" />
-                                                        Mark as Paid <span className="mx-1 opacity-50">|</span> ₹{payment.total.toFixed(2)}
+                                                        {t('markPaid')} <span className="mx-1 opacity-50">|</span> ₹{payment.total.toFixed(2)}
                                                     </Button>
                                                 </div>
                                             </div>
@@ -248,8 +252,8 @@ export default function PaymentsPage() {
                                 <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-slate-800 text-slate-400 mb-3">
                                     <CheckCircle2 size={24} />
                                 </div>
-                                <h3 className="text-lg font-medium text-white">All caught up!</h3>
-                                <p className="text-slate-500 mt-1">No completed payments pending.</p>
+                                <h3 className="text-lg font-medium text-white">{t('allCaughtUp')}</h3>
+                                <p className="text-slate-500 mt-1">{t('noCompletedPayments')}</p>
                             </div>
                         )}
                     </div>
@@ -258,7 +262,7 @@ export default function PaymentsPage() {
                     {upcomingWorkers.length > 0 && (
                         <div>
                             <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-slate-300 mt-10">
-                                <Clock size={20} className="text-amber-400" /> Upcoming (In Progress)
+                                <Clock size={20} className="text-amber-400" /> {t('upcoming')}
                             </h2>
                             <div className="space-y-3 opacity-90">
                                 {upcomingWorkers.map(payment => (
@@ -276,13 +280,13 @@ export default function PaymentsPage() {
                                                         <div className="font-bold text-slate-200 text-lg">{payment.worker_name}</div>
                                                         <div className="text-sm text-slate-500 flex items-center gap-1.5 font-medium">
                                                             <Clock size={14} className="text-amber-500" />
-                                                            {payment.upcoming_entries} in progress
+                                                            {payment.upcoming_entries} {t('inProgressBadge')}
                                                         </div>
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-3">
                                                     <div className="flex flex-col items-end">
-                                                        <div className="text-sm text-slate-600 font-medium uppercase">Est.</div>
+                                                        <div className="text-sm text-slate-600 font-medium uppercase">{t('est')}</div>
                                                         <div className="flex items-center gap-0.5 text-xl font-bold text-slate-400">
                                                             <IndianRupee size={18} />
                                                             {payment.upcoming_total.toFixed(2)}
@@ -342,9 +346,9 @@ export default function PaymentsPage() {
                 isOpen={modalOpen}
                 onClose={() => setModalOpen(false)}
                 onConfirm={handleConfirmPayment}
-                title="Confirm Payment"
-                description="Are you sure you want to mark all completed work for this worker as paid? This action cannot be undone."
-                confirmLabel="Yes, Mark Paid"
+                title={t('confirmPayment')}
+                description={t('confirmPaymentDesc')}
+                confirmLabel={t('markPaid')}
                 variant="warning"
             />
         </div>

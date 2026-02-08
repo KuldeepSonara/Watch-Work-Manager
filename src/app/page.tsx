@@ -33,7 +33,7 @@ export default function HomePage() {
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 mb-4">
           <Watch size={32} className="text-white" />
         </div>
-        <p className="text-slate-400 text-base">Select a section to get started</p>
+        <p className="text-slate-400 text-base">{t('welcomeMessage')}</p>
       </div>
 
       {/* Menu Grid - Large touch targets on mobile */}

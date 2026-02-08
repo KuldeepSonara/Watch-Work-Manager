@@ -130,17 +130,17 @@ function EntryContent() {
                 })
 
             if (res.ok) {
-                toast.success(editId ? 'Entry updated!' : 'Entry saved!')
+                toast.success(editId ? t('entryUpdated') : t('entrySaved'))
                 if (editId) router.push('/entry')
                 resetForm()
                 setIsAddModalOpen(false)
                 fetchData()
             } else {
                 const data = await res.json()
-                toast.error(data.error || 'Failed to save entry')
+                toast.error(data.error || t('failedSaveEntry'))
             }
         } catch {
-            toast.error('Failed to save entry')
+            toast.error(t('failedSaveEntry'))
         }
     }
 
@@ -162,13 +162,13 @@ function EntryContent() {
         try {
             const res = await fetch(`/api/entries/${deleteId}`, { method: 'DELETE' })
             if (res.ok) {
-                toast.success('Entry deleted!')
+                toast.success(t('entryDeleted'))
                 fetchData()
             } else {
-                toast.error('Failed to delete entry')
+                toast.error(t('failedDeleteEntry'))
             }
         } catch {
-            toast.error('Failed to delete entry')
+            toast.error(t('failedDeleteEntry'))
         } finally {
             setDeleteId(null)
         }
@@ -191,7 +191,7 @@ function EntryContent() {
 
             {tasks.length === 0 && !loading && (
                 <div className="alert alert-warning">
-                    No tasks found! Add tasks in Task Rates first.
+                    {t('noTasksWarning')}
                 </div>
             )}
 
@@ -308,7 +308,7 @@ function EntryContent() {
                     </div>
 
                     <Button type="submit" className="big-action-btn bg-emerald-600 hover:bg-emerald-700 w-full" disabled={tasks.length === 0}>
-                        <Save size={18} /> {editingId ? t('saveEntry') : t('saveEntry')}
+                        <Save size={18} /> {editingId ? t('saveChanges') : t('saveEntry')}
                     </Button>
                 </form>
             </Modal>
@@ -371,7 +371,7 @@ function EntryContent() {
                                             <Package size={16} className="text-emerald-500" />
                                             {entry.quantity}
                                         </div>
-                                        <div className="text-[10px] text-slate-500 uppercase font-bold">Qty</div>
+                                        <div className="text-[10px] text-slate-500 uppercase font-bold">{t('quantity')}</div>
                                     </div>
                                 </div>
 
@@ -381,7 +381,7 @@ function EntryContent() {
                                         <Package size={24} className="text-emerald-500" />
                                         {entry.quantity}
                                     </div>
-                                    <div className="text-xs text-slate-500 uppercase font-bold mb-3">Quantity</div>
+                                    <div className="text-xs text-slate-500 uppercase font-bold mb-3">{t('quantity')}</div>
 
                                     {/* Status Badge Desktop */}
                                     {entry.status === 'completed' ? (
@@ -390,7 +390,7 @@ function EntryContent() {
                                         </span>
                                     ) : entry.status === 'paid' ? (
                                         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 text-sm font-medium">
-                                            <CheckCircle2 size={14} /> Paid
+                                            <CheckCircle2 size={14} /> {t('paid')}
                                         </span>
                                     ) : (
                                         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-sm font-medium">
@@ -418,7 +418,7 @@ function EntryContent() {
                                         </span>
                                     ) : entry.status === 'paid' ? (
                                         <span className="status-badge bg-blue-500/10 text-blue-400 border-blue-500/20 text-xs px-2 py-0.5 rounded flex items-center gap-1">
-                                            <CheckCircle2 size={12} /> Paid
+                                            <CheckCircle2 size={12} /> {t('paid')}
                                         </span>
                                     ) : (
                                         <span className="status-badge status-badge-warning text-xs">
@@ -439,7 +439,7 @@ function EntryContent() {
                                         <button
                                             className="p-1.5 rounded-md hover:bg-red-900/20 text-slate-400 hover:text-red-400 transition-colors"
                                             onClick={() => confirmDelete(entry.id)}
-                                            title="Delete"
+                                            title={t('delete')}
                                         >
                                             <Trash2 size={16} />
                                         </button>
@@ -460,7 +460,7 @@ function EntryContent() {
                                     <button
                                         className="h-10 w-10 rounded-lg bg-slate-800 hover:bg-red-900/20 text-slate-400 hover:text-red-400 flex items-center justify-center transition-colors border border-slate-700/50 hover:border-red-900/50"
                                         onClick={() => confirmDelete(entry.id)}
-                                        title="Delete"
+                                        title={t('delete')}
                                     >
                                         <Trash2 size={18} />
                                     </button>
@@ -475,9 +475,9 @@ function EntryContent() {
                 isOpen={!!deleteId}
                 onClose={() => setDeleteId(null)}
                 onConfirm={handleDelete}
-                title="Delete Entry"
-                description="Are you sure you want to delete this work entry? This action cannot be undone."
-                confirmLabel="Delete"
+                title={t('deleteEntryTitle')}
+                description={t('deleteEntryDesc')}
+                confirmLabel={t('delete')}
                 variant="danger"
             />
         </div>

@@ -91,7 +91,7 @@ export default function PendingPage() {
                 setPendingItems(pending)
             }
         } catch {
-            toast.error('Failed to load data')
+            toast.error(t('failedLoadData'))
         }
         setLoading(false)
     }
@@ -113,7 +113,7 @@ export default function PendingPage() {
 
     async function handleReassign() {
         if (!showReassign || !reassignWorkerId || !reassignQuantity || reassignTasks.length === 0) {
-            toast.error('Please fill all fields')
+            toast.error(t('fillAllFields'))
             return
         }
 
@@ -131,15 +131,15 @@ export default function PendingPage() {
             })
 
             if (res.ok) {
-                toast.success('Work reassigned!')
+                toast.success(t('workReassigned'))
                 setShowReassign(null)
                 fetchData()
             } else {
                 const data = await res.json()
-                toast.error(data.error || 'Failed to reassign')
+                toast.error(data.error || t('failedReassign'))
             }
         } catch {
-            toast.error('Failed to reassign work')
+            toast.error(t('failedReassign'))
         }
     }
 
@@ -153,13 +153,13 @@ export default function PendingPage() {
             })
 
             if (res.ok) {
-                toast.success(newStatus === 'completed' ? 'Marked as complete!' : 'Marked as in progress!')
+                toast.success(newStatus === 'completed' ? t('markedComplete') : t('markedInProgress'))
                 fetchData()
             } else {
-                toast.error('Failed to update status')
+                toast.error(t('failedUpdateStatus'))
             }
         } catch {
-            toast.error('Failed to update status')
+            toast.error(t('failedUpdateStatus'))
         }
     }
 
@@ -191,7 +191,7 @@ export default function PendingPage() {
                         }`}
                     onClick={() => setFilter('all')}
                 >
-                    <ListFilter size={16} className="inline mr-1" /> All ({pendingItems.length})
+                    <ListFilter size={16} className="inline mr-1" /> {t('all')} ({pendingItems.length})
                 </button>
                 <button
                     className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${filter === 'in_progress'
@@ -231,7 +231,7 @@ export default function PendingPage() {
                         <Check size={48} />
                     </div>
                     <div className="empty-state-text">
-                        {filter === 'all' ? 'All work complete!' : `No ${filter === 'in_progress' ? 'in progress' : 'completed'} work`}
+                        {filter === 'all' ? t('allWorkComplete') : (filter === 'in_progress' ? t('noInProgressWork') : t('noCompletedWork'))}
                     </div>
                     <div className="text-slate-500 text-sm">{t('noData')}</div>
                 </div>
@@ -272,7 +272,7 @@ export default function PendingPage() {
                                         <div className="text-xl font-bold text-emerald-400 leading-none">
                                             {item.entry.quantity}
                                         </div>
-                                        <div className="text-[10px] text-slate-500 uppercase font-bold mt-0.5">Qty</div>
+                                        <div className="text-[10px] text-slate-500 uppercase font-bold mt-0.5">{t('quantity')}</div>
                                     </div>
                                 </div>
 
@@ -281,7 +281,7 @@ export default function PendingPage() {
                                     <div className="text-3xl font-bold text-emerald-400 leading-none mb-1">
                                         {item.entry.quantity}
                                     </div>
-                                    <div className="text-xs text-slate-500 uppercase font-bold mb-3">Quantity</div>
+                                    <div className="text-xs text-slate-500 uppercase font-bold mb-3">{t('quantity')}</div>
 
                                     {/* Status Badge Desktop */}
                                     <div className="mb-2">
@@ -316,11 +316,11 @@ export default function PendingPage() {
                                         {/* Task progress summary */}
                                         {item.remainingTasks.length > 0 ? (
                                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-800 text-slate-400 border border-slate-700 text-xs md:text-sm">
-                                                <Clock size={12} /> {item.remainingTasks.length} remaining
+                                                <Clock size={12} /> {item.remainingTasks.length} {t('remaining')}
                                             </span>
                                         ) : (
                                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-800 text-slate-400 border border-slate-700 text-xs md:text-sm">
-                                                <Check size={12} /> All tasks done
+                                                <Check size={12} /> {t('allTasksDone')}
                                             </span>
                                         )}
                                     </div>

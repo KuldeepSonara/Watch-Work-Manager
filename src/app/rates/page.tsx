@@ -66,17 +66,17 @@ export default function RatesPage() {
             })
 
             if (res.ok) {
-                toast.success('Task added!')
+                toast.success(t('taskAdded'))
                 setNewName('')
                 setNewRate('')
                 setIsAddModalOpen(false)
                 fetchTasks()
             } else {
                 const data = await res.json()
-                toast.error(data.error || 'Failed to add task')
+                toast.error(data.error || t('failedAddTask'))
             }
         } catch {
-            toast.error('Failed to add task')
+            toast.error(t('failedAddTask'))
         }
     }
 
@@ -95,15 +95,15 @@ export default function RatesPage() {
             })
 
             if (res.ok) {
-                toast.success('Task updated!')
+                toast.success(t('taskUpdated'))
                 setEditingTask(null)
                 fetchTasks()
             } else {
                 const data = await res.json()
-                toast.error(data.error || 'Failed to update task')
+                toast.error(data.error || t('failedUpdateTask'))
             }
         } catch {
-            toast.error('Failed to update task')
+            toast.error(t('failedUpdateTask'))
         }
     }
 
@@ -117,13 +117,13 @@ export default function RatesPage() {
         try {
             const res = await fetch(`/api/tasks/${deleteId}`, { method: 'DELETE' })
             if (res.ok) {
-                toast.success('Task deleted!')
+                toast.success(t('taskDeleted'))
                 fetchTasks()
             } else {
-                toast.error('Failed to delete task')
+                toast.error(t('failedDeleteTask'))
             }
         } catch {
-            toast.error('Failed to delete task')
+            toast.error(t('failedDeleteTask'))
         } finally {
             setDeleteId(null)
         }
@@ -165,7 +165,7 @@ export default function RatesPage() {
             >
                 <form onSubmit={handleAdd}>
                     <div className="form-group">
-                        <label className="form-label">Task Name</label>
+                        <label className="form-label">{t('taskName')}</label>
                         <Input
                             className="large-input bg-slate-800 border-slate-700"
                             value={newName}
@@ -175,7 +175,7 @@ export default function RatesPage() {
                         />
                     </div>
                     <div className="form-group">
-                        <label className="form-label">Rate (₹)</label>
+                        <label className="form-label">{t('ratePerItem')}</label>
                         <Input
                             type="number"
                             step="0.01"
@@ -197,13 +197,13 @@ export default function RatesPage() {
                 onClose={() => setEditingTask(null)}
                 title={
                     <>
-                        <Pencil size={20} className="text-emerald-400" /> Edit Task
+                        <Pencil size={20} className="text-emerald-400" /> {t('editTask')}
                     </>
                 }
             >
                 <form onSubmit={handleUpdate}>
                     <div className="form-group">
-                        <label className="form-label">Task Name</label>
+                        <label className="form-label">{t('taskName')}</label>
                         <Input
                             className="large-input bg-slate-800 border-slate-700"
                             value={editName}
@@ -213,7 +213,7 @@ export default function RatesPage() {
                         />
                     </div>
                     <div className="form-group">
-                        <label className="form-label">Rate (₹)</label>
+                        <label className="form-label">{t('ratePerItem')}</label>
                         <Input
                             type="number"
                             step="0.01"
@@ -224,7 +224,7 @@ export default function RatesPage() {
                         />
                     </div>
                     <Button type="submit" className="big-action-btn bg-emerald-600 hover:bg-emerald-700 w-full">
-                        <Save size={18} /> Save Changes
+                        <Save size={18} /> {t('saveChanges')}
                     </Button>
                 </form>
             </Modal>
@@ -279,7 +279,7 @@ export default function RatesPage() {
                                         <div className="text-sm md:text-lg font-bold text-emerald-400 flex items-center md:justify-center gap-1">
                                             <IndianRupee size={14} className="md:w-5 md:h-5" />
                                             {task.rate.toFixed(2)}
-                                            <span className="text-[10px] md:text-xs text-slate-500 font-medium uppercase ml-1 tracking-wide self-center">Per Item</span>
+                                            <span className="text-[10px] md:text-xs text-slate-500 font-medium uppercase ml-1 tracking-wide self-center">{t('perItem')}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -289,7 +289,7 @@ export default function RatesPage() {
                                     <button
                                         className="h-8 w-8 md:h-10 md:w-10 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors border border-slate-700/50"
                                         onClick={() => startEdit(task)}
-                                        title="Edit"
+                                        title={t('edit')}
                                         aria-label="Edit task"
                                     >
                                         <Pencil size={15} className="md:w-5 md:h-5" />
@@ -297,7 +297,7 @@ export default function RatesPage() {
                                     <button
                                         className="h-8 w-8 md:h-10 md:w-10 rounded-lg bg-slate-800 hover:bg-red-900/20 text-slate-400 hover:text-red-400 flex items-center justify-center transition-colors border border-slate-700/50 hover:border-red-900/50"
                                         onClick={() => confirmDelete(task.id)}
-                                        title="Delete"
+                                        title={t('delete')}
                                         aria-label="Delete task"
                                     >
                                         <Trash2 size={15} className="md:w-5 md:h-5" />
@@ -313,9 +313,9 @@ export default function RatesPage() {
                 isOpen={!!deleteId}
                 onClose={() => setDeleteId(null)}
                 onConfirm={handleDelete}
-                title="Delete Task"
-                description="Are you sure you want to delete this task?"
-                confirmLabel="Delete"
+                title={t('deleteTaskTitle')}
+                description={t('deleteTaskDesc')}
+                confirmLabel={t('delete')}
                 variant="danger"
             />
         </div>

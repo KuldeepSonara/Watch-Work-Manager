@@ -224,95 +224,70 @@ export default function PendingPage() {
                     {filteredItems.map(item => (
                         <Card
                             key={item.entry.id}
-                            className="bg-slate-900/50 border-slate-800 hover:border-emerald-500/50 transition-all duration-300 group relative overflow-hidden h-full flex flex-col card-hover"
+                            className="bg-slate-900/50 border-slate-800 hover:border-emerald-500/50 transition-all duration-300 group relative overflow-hidden card-hover"
                         >
                             <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 
-                            <CardContent className="p-3 md:p-5 flex flex-col h-full relative z-10 box-border">
-                                {/* Header Section */}
-                                <div className="flex md:flex-col items-start md:items-center justify-between md:justify-center w-full mb-3 md:mb-4">
-                                    <div className="flex md:flex-col items-center gap-3 md:gap-4 flex-1 min-w-0 md:text-center md:w-full">
-                                        {/* Avatar */}
-                                        <div className="relative shrink-0">
-                                            <div className="h-10 w-10 md:h-20 md:w-20 rounded-full bg-slate-800 flex items-center justify-center text-emerald-400 shadow-md border border-slate-700 group-hover:border-emerald-500/30 transition-colors">
-                                                <UserCircle size={20} className="md:w-10 md:h-10" />
-                                            </div>
-                                            <div className="absolute -bottom-0.5 -right-0.5 md:bottom-1 md:right-1 h-3 w-3 md:h-5 md:w-5 bg-emerald-500 rounded-full border-2 border-slate-900" />
+                            <CardContent className="p-3 pl-4 flex flex-col relative z-10">
+                                {/* Header Row: Avatar, Info, Quantity */}
+                                <div className="flex items-center gap-3 w-full">
+                                    {/* Avatar */}
+                                    <div className="relative shrink-0">
+                                        <div className="h-10 w-10 rounded-full bg-slate-800 flex items-center justify-center text-emerald-400 border border-slate-700 group-hover:border-emerald-500/30 transition-colors">
+                                            <UserCircle size={20} />
                                         </div>
+                                        <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 bg-emerald-500 rounded-full border-2 border-slate-900" />
+                                    </div>
 
-                                        {/* Worker Info */}
-                                        <div className="md:w-full min-w-0">
-                                            <div className="font-bold text-white text-base md:text-xl leading-tight truncate px-1">
-                                                {item.entry.workers?.name}
-                                            </div>
-                                            <div className="text-xs md:text-sm text-slate-400 flex items-center md:justify-center gap-1 mt-0.5 md:mt-1">
-                                                <Calendar size={12} className="md:w-3.5 md:h-3.5" /> {new Date(item.entry.entry_date).toLocaleDateString()}
-                                            </div>
+                                    {/* Worker Info */}
+                                    <div className="flex-1 min-w-0">
+                                        <div className="font-bold text-white text-sm leading-tight truncate">
+                                            {item.entry.workers?.name}
+                                        </div>
+                                        <div className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
+                                            <Calendar size={12} /> {new Date(item.entry.entry_date).toLocaleDateString()}
                                         </div>
                                     </div>
 
-                                    {/* Quantity (Mobile: Right, Desktop: Below Name or Separate) */}
-                                    <div className="text-right md:hidden shrink-0 ml-2">
-                                        <div className="text-xl font-bold text-emerald-400 leading-none">
+                                    {/* Quantity */}
+                                    <div className="text-right shrink-0">
+                                        <div className="text-lg font-bold text-emerald-400 leading-none">
                                             {item.entry.quantity}
                                         </div>
                                         <div className="text-[10px] text-slate-500 uppercase font-bold mt-0.5">{t('quantity')}</div>
                                     </div>
                                 </div>
 
-                                {/* Desktop Quantity & Status Section */}
-                                <div className="hidden md:flex flex-col items-center justify-center mb-4 w-full">
-                                    <div className="text-3xl font-bold text-emerald-400 leading-none mb-1">
-                                        {item.entry.quantity}
-                                    </div>
-                                    <div className="text-xs text-slate-500 uppercase font-bold mb-3">{t('quantity')}</div>
-
-                                    {/* Status Badge Desktop */}
-                                    <div className="mb-2">
+                                {/* Status & Tasks Block */}
+                                <div className="bg-slate-950/30 rounded-md p-2 mt-2 border border-slate-800/30">
+                                    <div className="flex flex-wrap gap-1.5 mb-1.5">
+                                        {/* Status Badge */}
                                         {item.entry.status === 'completed' ? (
-                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-sm font-medium">
-                                                <CheckCircle2 size={14} /> {t('completed')}
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-medium">
+                                                <CheckCircle2 size={12} /> {t('completed')}
                                             </span>
                                         ) : (
-                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-sm font-medium">
-                                                <Clock size={14} /> {t('inProgress')}
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs font-medium">
+                                                <Clock size={12} /> {t('inProgress')}
                                             </span>
                                         )}
-                                    </div>
-                                </div>
-
-                                {/* Mobile Status & Tasks Block */}
-                                <div className="bg-slate-950/30 rounded-lg p-2.5 mb-3 border border-slate-800/30 w-full flex-grow">
-                                    <div className="flex flex-wrap gap-2 mb-2 md:justify-center">
-                                        {/* Status Badge (Mobile Only) */}
-                                        <div className="md:hidden">
-                                            {item.entry.status === 'completed' ? (
-                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-medium">
-                                                    <CheckCircle2 size={12} /> {t('completed')}
-                                                </span>
-                                            ) : (
-                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs font-medium">
-                                                    <Clock size={12} /> {t('inProgress')}
-                                                </span>
-                                            )}
-                                        </div>
 
                                         {/* Task progress summary */}
                                         {item.remainingTasks.length > 0 ? (
-                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-800 text-slate-400 border border-slate-700 text-xs md:text-sm">
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-800 text-slate-400 border border-slate-700 text-xs">
                                                 <Clock size={12} /> {item.remainingTasks.length} {t('remaining')}
                                             </span>
                                         ) : (
-                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-800 text-slate-400 border border-slate-700 text-xs md:text-sm">
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-800 text-slate-400 border border-slate-700 text-xs">
                                                 <Check size={12} /> {t('allTasksDone')}
                                             </span>
                                         )}
                                     </div>
 
                                     {item.remainingTasks.length > 0 && (
-                                        <div className="flex flex-wrap gap-1 md:justify-center">
+                                        <div className="flex flex-wrap gap-1">
                                             {item.remainingTasks.map(task => (
-                                                <span key={task.id} className="text-[10px] md:text-xs bg-amber-500/10 text-amber-500/80 border border-amber-500/10 px-1.5 py-0.5 rounded">
+                                                <span key={task.id} className="text-[10px] bg-amber-500/10 text-amber-500/80 border border-amber-500/10 px-1.5 py-0.5 rounded">
                                                     {task.name}
                                                 </span>
                                             ))}
@@ -321,32 +296,32 @@ export default function PendingPage() {
                                 </div>
 
                                 {/* Action Buttons */}
-                                <div className="flex gap-2 w-full mt-auto">
+                                <div className="flex gap-2 w-full mt-2">
                                     {/* Status Toggle Button */}
                                     {item.entry.status === WorkStatus.IN_PROGRESS ? (
                                         <Button
-                                            className="flex-1 bg-emerald-600 hover:bg-emerald-700 h-9 md:h-10 text-xs md:text-sm"
+                                            className="flex-1 bg-emerald-600 hover:bg-emerald-700 h-8 text-xs"
                                             onClick={() => handleStatusChange(item.entry.id, WorkStatus.COMPLETED)}
                                         >
-                                            <CheckCircle2 size={16} className="mr-1.5" /> <span className="truncate">{t('markComplete')}</span>
+                                            <CheckCircle2 size={14} className="mr-1" /> <span className="truncate">{t('markComplete')}</span>
                                         </Button>
                                     ) : (
                                         <Button
-                                            className="flex-1 bg-amber-600 hover:bg-amber-700 h-9 md:h-10 text-xs md:text-sm"
+                                            className="flex-1 bg-amber-600 hover:bg-amber-700 h-8 text-xs"
                                             onClick={() => handleStatusChange(item.entry.id, WorkStatus.IN_PROGRESS)}
                                         >
-                                            <Clock size={16} className="mr-1.5" /> <span className="truncate">{t('markInProgress')}</span>
+                                            <Clock size={14} className="mr-1" /> <span className="truncate">{t('markInProgress')}</span>
                                         </Button>
                                     )}
 
-                                    {/* Reassign Button - only show if remaining tasks */}
+                                    {/* Reassign Button */}
                                     {item.remainingTasks.length > 0 && (
                                         <Button
-                                            className="flex-shrink-0 w-9 px-0 md:w-10 bg-blue-600 hover:bg-blue-700 h-9 md:h-10"
+                                            className="flex-shrink-0 w-8 px-0 bg-blue-600 hover:bg-blue-700 h-8"
                                             onClick={() => openReassign(item)}
                                             title={t('reassign')}
                                         >
-                                            <RefreshCw size={16} className="md:w-[18px] md:h-[18px]" />
+                                            <RefreshCw size={14} />
                                         </Button>
                                     )}
                                 </div>

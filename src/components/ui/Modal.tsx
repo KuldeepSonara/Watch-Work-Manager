@@ -13,27 +13,48 @@ interface ModalProps {
 }
 
 export function Modal({ isOpen, onClose, title, children, className }: ModalProps) {
-    const [viewportHeight, setViewportHeight] = React.useState('100vh')
+    const [viewportHeight, setViewportHeight] = React.useState('100dvh')
+    const [viewportOffset, setViewportOffset] = React.useState(0)
+    const scrollPositionRef = React.useRef(0)
 
     React.useEffect(() => {
         if (!isOpen) return
 
-        // Handle virtual keyboard on mobile
+        // Store scroll position
+        scrollPositionRef.current = window.scrollY
+
+        // Handle virtual keyboard on mobile (especially Safari)
         const handleResize = () => {
             if (window.visualViewport) {
-                setViewportHeight(`${window.visualViewport.height}px`)
+                const vh = window.visualViewport.height
+                const offset = window.visualViewport.offsetTop
+                setViewportHeight(`${vh}px`)
+                setViewportOffset(offset)
             }
         }
 
-        // Add body styles to prevent scroll when modal is open
+        // Prevent body scroll and fix position
+        const scrollY = window.scrollY
+        document.body.style.position = 'fixed'
+        document.body.style.top = `-${scrollY}px`
+        document.body.style.left = '0'
+        document.body.style.right = '0'
         document.body.style.overflow = 'hidden'
 
         window.visualViewport?.addEventListener('resize', handleResize)
+        window.visualViewport?.addEventListener('scroll', handleResize)
         handleResize()
 
         return () => {
+            // Restore scroll position
+            document.body.style.position = ''
+            document.body.style.top = ''
+            document.body.style.left = ''
+            document.body.style.right = ''
             document.body.style.overflow = ''
+            window.scrollTo(0, scrollPositionRef.current)
             window.visualViewport?.removeEventListener('resize', handleResize)
+            window.visualViewport?.removeEventListener('scroll', handleResize)
         }
     }, [isOpen])
 
@@ -41,12 +62,15 @@ export function Modal({ isOpen, onClose, title, children, className }: ModalProp
 
     return (
         <div
-            className="fixed inset-x-0 top-0 z-[100] flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-0 sm:p-4 animate-in fade-in duration-200"
-            style={{ height: viewportHeight }}
+            className="fixed inset-x-0 z-[100] flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-0 sm:p-4 animate-in fade-in duration-200"
+            style={{
+                height: viewportHeight,
+                top: viewportOffset
+            }}
         >
             <div
                 className={cn(
-                    "bg-slate-900 border-t sm:border border-slate-700 rounded-t-3xl sm:rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] sm:max-h-[90vh] flex flex-col animate-in slide-in-from-bottom-10 sm:zoom-in-95 duration-200",
+                    "bg-slate-900 border-t sm:border border-slate-700 rounded-t-3xl sm:rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] sm:max-h-[85vh] flex flex-col animate-in slide-in-from-bottom-10 sm:zoom-in-95 duration-200",
                     className
                 )}
             >

@@ -324,133 +324,87 @@ function EntryContent() {
                     <div className="empty-state-text">{t('noData')}</div>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                     {entries.map(entry => (
                         <Card key={entry.id} className="bg-slate-900/50 border-slate-800 hover:border-slate-700 transition-colors group relative overflow-hidden card-hover">
                             <div className={`absolute top-0 left-0 w-1 h-full transition-colors ${entry.status === 'completed' ? 'bg-emerald-500' :
                                 entry.status === 'paid' ? 'bg-blue-500' : 'bg-amber-500/50'
                                 }`} />
 
-                            <CardContent className="p-3 md:p-5 flex flex-col items-center justify-between h-full relative z-10 box-border">
-                                {/* Wrapper for Mobile Row / Desktop Column */}
-                                <div className="flex md:flex-col items-center md:justify-center w-full gap-3 md:gap-4">
-                                    {/* Icon / Avatar */}
+                            <CardContent className="p-3 pl-4 flex flex-col relative z-10">
+                                {/* Header Row: Avatar, Info, Quantity */}
+                                <div className="flex items-center gap-3 w-full">
+                                    {/* Avatar */}
                                     <div className="shrink-0">
-                                        <div className="h-10 w-10 md:h-20 md:w-20 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 border border-slate-700 shadow-md">
-                                            <UserCircle size={20} className="md:w-10 md:h-10" />
+                                        <div className="h-10 w-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 border border-slate-700">
+                                            <UserCircle size={20} />
                                         </div>
                                     </div>
 
                                     {/* Worker & Date Info */}
-                                    <div className="flex-1 min-w-0 md:text-center md:w-full">
-                                        <h3 className="font-bold text-white text-base md:text-xl truncate">
+                                    <div className="flex-1 min-w-0">
+                                        <h3 className="font-bold text-white text-sm truncate">
                                             {entry.workers?.name}
                                         </h3>
-                                        <div className="text-xs md:text-sm text-slate-400 flex items-center md:justify-center gap-1 mt-0.5">
-                                            <Calendar size={12} className="md:w-4 md:h-4" />
+                                        <div className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
+                                            <Calendar size={12} />
                                             {new Date(entry.entry_date).toLocaleDateString()}
                                         </div>
                                     </div>
 
-                                    {/* Quantity (Mobile Right) */}
-                                    <div className="text-right md:hidden shrink-0">
-                                        <div className="text-xl font-bold text-white flex items-center justify-end gap-1">
-                                            <Package size={16} className="text-emerald-500" />
+                                    {/* Quantity */}
+                                    <div className="text-right shrink-0">
+                                        <div className="text-lg font-bold text-white flex items-center justify-end gap-1">
+                                            <Package size={14} className="text-emerald-500" />
                                             {entry.quantity}
                                         </div>
                                         <div className="text-[10px] text-slate-500 uppercase font-bold">{t('quantity')}</div>
                                     </div>
                                 </div>
 
-                                {/* Desktop: Big Quantity & Status */}
-                                <div className="hidden md:flex flex-col items-center justify-center mt-4 w-full">
-                                    <div className="text-3xl font-bold text-white flex items-center gap-2 mb-1">
-                                        <Package size={24} className="text-emerald-500" />
-                                        {entry.quantity}
-                                    </div>
-                                    <div className="text-xs text-slate-500 uppercase font-bold mb-3">{t('quantity')}</div>
-
-                                    {/* Status Badge Desktop */}
-                                    {entry.status === 'completed' ? (
-                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-sm font-medium">
-                                            <CheckCircle2 size={14} /> {t('completed')}
-                                        </span>
-                                    ) : entry.status === 'paid' ? (
-                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 text-sm font-medium">
-                                            <CheckCircle2 size={14} /> {t('paid')}
-                                        </span>
-                                    ) : (
-                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-sm font-medium">
-                                            <Clock size={14} /> {t('inProgress')}
-                                        </span>
-                                    )}
-                                </div>
-
-                                {/* Tasks List (Shared) */}
-                                <div className="mt-3 md:mt-4 w-full bg-slate-950/30 rounded-lg p-2 md:p-3 border border-slate-800/30">
-                                    <div className="flex flex-wrap gap-1 md:justify-center">
+                                {/* Tasks List */}
+                                <div className="mt-2 bg-slate-950/30 rounded-md p-2 border border-slate-800/30">
+                                    <div className="flex flex-wrap gap-1">
                                         {entry.work_entry_tasks?.map(t => (
-                                            <span key={t.task_id} className="text-[10px] md:text-xs bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded border border-slate-700">
+                                            <span key={t.task_id} className="text-[10px] bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded border border-slate-700">
                                                 {getTaskName(t.task_id)}
                                             </span>
                                         ))}
                                     </div>
                                 </div>
 
-                                {/* Mobile Status Badge & Actions */}
-                                <div className="flex items-center justify-between w-full mt-3 md:hidden">
+                                {/* Status & Actions Row */}
+                                <div className="flex items-center justify-between w-full mt-2">
                                     {entry.status === 'completed' ? (
-                                        <span className="status-badge status-badge-success text-xs">
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-medium">
                                             <CheckCircle2 size={12} /> {t('completed')}
                                         </span>
                                     ) : entry.status === 'paid' ? (
-                                        <span className="status-badge bg-blue-500/10 text-blue-400 border-blue-500/20 text-xs px-2 py-0.5 rounded flex items-center gap-1">
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20 text-xs font-medium">
                                             <CheckCircle2 size={12} /> {t('paid')}
                                         </span>
                                     ) : (
-                                        <span className="status-badge status-badge-warning text-xs">
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs font-medium">
                                             <Clock size={12} /> {t('inProgress')}
                                         </span>
                                     )}
 
-                                    <div className="flex gap-2">
+                                    <div className="flex gap-1.5">
                                         <button
                                             className="p-1.5 rounded-md hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
-                                            onClick={() => {
-                                                router.push(`?edit=${entry.id}`)
-                                            }}
+                                            onClick={() => router.push(`?edit=${entry.id}`)}
                                             title={t('edit')}
                                         >
-                                            <Pencil size={16} />
+                                            <Pencil size={14} />
                                         </button>
                                         <button
                                             className="p-1.5 rounded-md hover:bg-red-900/20 text-slate-400 hover:text-red-400 transition-colors"
                                             onClick={() => confirmDelete(entry.id)}
                                             title={t('delete')}
                                         >
-                                            <Trash2 size={16} />
+                                            <Trash2 size={14} />
                                         </button>
                                     </div>
-                                </div>
-
-                                {/* Desktop Actions (Bottom) */}
-                                <div className="hidden md:flex gap-2 mt-4">
-                                    <button
-                                        className="h-10 w-10 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors border border-slate-700/50"
-                                        onClick={() => {
-                                            router.push(`?edit=${entry.id}`)
-                                        }}
-                                        title={t('edit')}
-                                    >
-                                        <Pencil size={18} />
-                                    </button>
-                                    <button
-                                        className="h-10 w-10 rounded-lg bg-slate-800 hover:bg-red-900/20 text-slate-400 hover:text-red-400 flex items-center justify-center transition-colors border border-slate-700/50 hover:border-red-900/50"
-                                        onClick={() => confirmDelete(entry.id)}
-                                        title={t('delete')}
-                                    >
-                                        <Trash2 size={18} />
-                                    </button>
                                 </div>
                             </CardContent>
                         </Card>

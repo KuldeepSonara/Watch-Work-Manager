@@ -12,6 +12,7 @@ import { Modal } from '@/components/ui/Modal'
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
 import api, { handleApiError } from '@/lib/api'
 import { ApiEndpoints } from '@/lib/enums'
+import { ERROR_CODES } from '@/lib/constants'
 
 interface Task {
     id: string
@@ -96,7 +97,12 @@ export default function RatesPage() {
             toast.success(t('taskDeleted'))
             fetchTasks()
         } catch (error) {
-            toast.error(handleApiError(error, t('failedDeleteTask')))
+            const data = (error as any).response?.data
+            if (data?.error === ERROR_CODES.TASK_IN_USE) {
+                toast.error(t('cannotDeleteTaskInUse'))
+            } else {
+                toast.error(handleApiError(error, t('failedDeleteTask')))
+            }
         } finally {
             setDeleteId(null)
         }

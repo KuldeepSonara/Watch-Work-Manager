@@ -5,6 +5,7 @@
 
 import { NextResponse } from 'next/server'
 import { tasksService, CreateTaskDto, UpdateTaskDto } from '@/services'
+import { ERROR_CODES } from '@/lib/constants'
 
 export class TasksController {
     static async getAll() {
@@ -69,6 +70,13 @@ export class TasksController {
             await tasksService.delete(id)
             return new Response(null, { status: 204 })
         } catch (error) {
+            // Handle specific validation error
+            if (error instanceof Error && error.message === ERROR_CODES.TASK_IN_USE) {
+                return NextResponse.json(
+                    { error: ERROR_CODES.TASK_IN_USE },
+                    { status: 400 }
+                )
+            }
             return this.handleError(error, 'Failed to delete task')
         }
     }

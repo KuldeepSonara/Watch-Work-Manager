@@ -66,6 +66,7 @@ export const translations = {
         failedDeleteTask: 'Failed to delete task',
         deleteTaskTitle: 'Delete Task',
         deleteTaskDesc: 'Are you sure you want to delete this task?',
+        cannotDeleteTaskInUse: 'Cannot delete task. It is used in existing work entries.',
 
         // Work entry
         selectWorker: 'Select Worker',
@@ -204,6 +205,7 @@ export const translations = {
         failedDeleteTask: 'કામ ડિલીટ કરવામાં નિષ્ફળ',
         deleteTaskTitle: 'કામ ડિલીટ કરો',
         deleteTaskDesc: 'શું તમે આ કામ ડિલીટ કરવા માંગો છો?',
+        cannotDeleteTaskInUse: 'કામ ડિલીટ કરી શકાતું નથી. તે હાલના કામની એન્ટ્રીમાં વપરાય છે.',
 
         // Work entry
         selectWorker: 'કામદાર પસંદ કરો',

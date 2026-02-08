@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '@/lib/supabase'
+import { ERROR_CODES } from '@/lib/constants'
 
 export interface Task {
     id: string
@@ -84,6 +85,12 @@ class TasksService {
     }
 
     async delete(id: string): Promise<void> {
+        // Check if task is in use
+        const isUsed = await this.hasActiveEntries(id)
+        if (isUsed) {
+            throw new Error(ERROR_CODES.TASK_IN_USE)
+        }
+
         // Soft delete - set is_active to false
         const { error } = await supabase
             .from('tasks')
@@ -91,6 +98,19 @@ class TasksService {
             .eq('id', id)
 
         if (error) throw error
+    }
+
+    async hasActiveEntries(taskId: string): Promise<boolean> {
+        // Only check for entries that are in_progress
+        const { data, error } = await supabase
+            .from('work_entry_tasks')
+            .select('id, work_entries!inner(status)')
+            .eq('task_id', taskId)
+            .eq('work_entries.status', 'in_progress')
+            .limit(1)
+
+        if (error) throw error
+        return (data?.length || 0) > 0
     }
 }
 
